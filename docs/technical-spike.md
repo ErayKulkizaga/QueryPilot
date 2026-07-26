@@ -130,3 +130,24 @@ of local download size and remains too slow for the primary response path, but
 its sentence-selection reliability is materially better than the 0.5B
 candidate. Because displayed text comes from the application-owned sentence
 set, selection cannot introduce a new plan claim.
+
+## Public demo architecture
+
+The portfolio demo is intentionally separated from the full local runtime. It
+runs the deterministic plan parser and the four rule categories directly in
+the browser. It has no PostgreSQL connection, SQL execution, model inference,
+embedding request, or application-owned persistence.
+
+The public boundary adds:
+
+- five synthetic, user-selectable plan fixtures
+- pasted PostgreSQL `EXPLAIN (FORMAT JSON)` support
+- a 200 KB input limit and 250-node plan limit
+- category-bound PostgreSQL documentation citations
+- explicit no-answer behavior when no strong signal is found
+- Turkish explanations and responsive keyboard-accessible controls
+
+Input JSON cannot control a citation. Known citation metadata is authored by
+the application and selected only after a deterministic rule category is
+established. The full local FastAPI, PostgreSQL, RAG, and Foundry Local path
+remains available as the engineering version of the project.

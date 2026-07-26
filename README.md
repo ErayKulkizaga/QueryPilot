@@ -28,6 +28,8 @@ The first working slice includes:
 - a fast deterministic analysis endpoint and separate optional AI enrichment
 - a Streamlit interface for sample scenarios and custom read-only SQL
 - a 12-scenario rule, no-answer, retrieval, and generation evaluation
+- a database-free public demo that analyzes sample or pasted EXPLAIN JSON
+  entirely in the browser
 
 ## Local setup
 
@@ -70,6 +72,23 @@ category-supporting document are available, the interface offers a separate
 button for optional local explanation selection. The model can select only
 application-approved sentences; rejected output never replaces the
 deterministic report.
+
+## Public demo mode
+
+The `public-demo/` site is the shareable portfolio surface. It does not connect
+to PostgreSQL, execute SQL, call a language model, or transmit pasted plan
+content to an application API. Its TypeScript analyzer runs in the browser and
+supports the same four MVP issue categories plus the no-answer path.
+
+```powershell
+Set-Location public-demo
+npm install
+npm run dev
+```
+
+The public input boundary accepts at most 200 KB of JSON and 250 plan nodes.
+Citations are selected from a category-specific PostgreSQL documentation
+allowlist; citation fields supplied inside input JSON are ignored.
 
 Run tests:
 
@@ -123,6 +142,7 @@ uses the deterministic fallback.
 - Every analyzed statement runs in a read-only transaction with a timeout.
 - `EXPLAIN ANALYZE` is intended only for the synthetic local demo database.
 - Suggested SQL is display-only and is never applied automatically.
+- The public demo never executes SQL and accepts plan JSON only.
 
 QueryPilot Local is an educational and portfolio project. It does not replace
 production workload testing or DBA review.
