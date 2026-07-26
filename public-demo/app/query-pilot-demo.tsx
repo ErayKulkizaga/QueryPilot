@@ -20,6 +20,19 @@ function CheckIcon() {
   return <span aria-hidden="true">✓</span>;
 }
 
+function BrandMark() {
+  return (
+    <span className="brand-mark" aria-hidden="true">
+      <span className="brand-glyph">
+        <span className="brand-glyph-node brand-glyph-root" />
+        <span className="brand-glyph-path" />
+        <span className="brand-glyph-node brand-glyph-top" />
+        <span className="brand-glyph-node brand-glyph-bottom" />
+      </span>
+    </span>
+  );
+}
+
 function ResultPanel({ result }: { result: AnalysisResult }) {
   return (
     <section className="result-panel" aria-live="polite">
@@ -69,7 +82,6 @@ function ResultPanel({ result }: { result: AnalysisResult }) {
         <span>{result.inspectedNodes} plan düğümü incelendi</span>
         {result.citation && (
           <a href={result.citation.url} target="_blank" rel="noreferrer">
-            <span className="source-dot" aria-hidden="true" />
             {result.citation.title} · {result.citation.documentId}
             <span aria-hidden="true">↗</span>
           </a>
@@ -123,12 +135,11 @@ export function QueryPilotDemo() {
     <main>
       <header className="site-header">
         <a className="brand" href="#top" aria-label="QueryPilot ana sayfa">
-          <span className="brand-mark" aria-hidden="true">Q</span>
+          <BrandMark />
           <span>QueryPilot</span>
         </a>
         <div className="header-actions">
           <span className="privacy-pill">
-            <span className="pulse" aria-hidden="true" />
             Veriniz tarayıcıdan çıkmaz
           </span>
           <a className="text-link" href="#nasıl-çalışır">
@@ -214,10 +225,7 @@ export function QueryPilotDemo() {
                   }`}
                   onClick={() => chooseFixture(fixture.id)}
                 >
-                  <span className="fixture-topline">
-                    <span className="fixture-indicator" aria-hidden="true" />
-                    {fixture.expectedLabel}
-                  </span>
+                  <span className="fixture-topline">{fixture.expectedLabel}</span>
                   <strong>{fixture.title}</strong>
                   <span>{fixture.description}</span>
                 </button>
@@ -290,7 +298,7 @@ export function QueryPilotDemo() {
 
       <footer>
         <div className="brand">
-          <span className="brand-mark" aria-hidden="true">Q</span>
+          <BrandMark />
           <span>QueryPilot</span>
         </div>
         <p>Güvenli, açıklanabilir ve offline-first PostgreSQL plan analizi.</p>

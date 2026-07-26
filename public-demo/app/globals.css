@@ -70,12 +70,61 @@ a {
   align-items: center;
   background: var(--green);
   border-radius: 9px;
-  color: var(--white);
   display: inline-flex;
-  font-family: var(--font-geist-mono), monospace;
   height: 32px;
   justify-content: center;
+  overflow: hidden;
   width: 32px;
+}
+
+.brand-glyph {
+  height: 18px;
+  position: relative;
+  width: 20px;
+}
+
+.brand-glyph-node {
+  background: var(--white);
+  border-radius: 2px;
+  height: 6px;
+  position: absolute;
+  width: 6px;
+  z-index: 1;
+}
+
+.brand-glyph-root {
+  left: 0;
+  top: 6px;
+}
+
+.brand-glyph-top {
+  background: var(--lime);
+  right: 0;
+  top: 0;
+}
+
+.brand-glyph-bottom {
+  bottom: 0;
+  right: 0;
+}
+
+.brand-glyph-path {
+  background: rgba(255, 255, 255, 0.78);
+  height: 2px;
+  left: 5px;
+  position: absolute;
+  top: 8px;
+  width: 10px;
+}
+
+.brand-glyph-path::after {
+  background: rgba(255, 255, 255, 0.78);
+  content: "";
+  height: 14px;
+  left: 8px;
+  position: absolute;
+  top: -6px;
+  width: 2px;
 }
 
 .header-actions {
@@ -95,14 +144,6 @@ a {
   font-weight: 600;
   gap: 8px;
   padding: 8px 12px;
-}
-
-.pulse {
-  background: var(--green);
-  border-radius: 50%;
-  box-shadow: 0 0 0 4px rgba(23, 95, 72, 0.13);
-  height: 7px;
-  width: 7px;
 }
 
 .text-link {
@@ -339,17 +380,6 @@ a {
   letter-spacing: 0.06em;
   margin-bottom: 18px;
   text-transform: uppercase;
-}
-
-.fixture-indicator {
-  background: var(--amber);
-  border-radius: 3px;
-  height: 7px;
-  width: 7px;
-}
-
-.fixture-card.selected .fixture-indicator {
-  background: var(--green);
 }
 
 .fixture-card strong {
@@ -615,13 +645,6 @@ a {
 
 .result-footer a:hover {
   text-decoration: underline;
-}
-
-.source-dot {
-  background: var(--green);
-  border-radius: 50%;
-  height: 6px;
-  width: 6px;
 }
 
 .explain-section {
