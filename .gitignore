@@ -1,0 +1,24 @@
+.env
+.venv/
+__pycache__/
+*.py[cod]
+.pytest_cache/
+.coverage
+htmlcov/
+.mypy_cache/
+.ruff_cache/
+*.egg-info/
+dist/
+build/
+.DS_Store
+
+# Local runtime artifacts
+data/
+models/
+*.npz
+tmp/
+foundry-spike.log
+evaluation/*-download*.log
+
+# PostgreSQL / Docker
+postgres-data/

@@ -1,0 +1,22 @@
+[
+  {
+    "case_id": "missing-index-selective-scan",
+    "query": "A selective filter performs a sequential scan and removes almost every row.",
+    "expected_document_id": "pg-indexes-01"
+  },
+  {
+    "case_id": "nested-loop-many-inner-executions",
+    "query": "A nested loop executes its inner index scan thousands of times.",
+    "expected_document_id": "pg-joins-01"
+  },
+  {
+    "case_id": "external-merge-disk-sort",
+    "query": "Sort Method external merge and Sort Space Type Disk appear in EXPLAIN.",
+    "expected_document_id": "pg-sorting-01"
+  },
+  {
+    "case_id": "row-estimate-error",
+    "query": "Actual rows are one hundred times higher than planner estimated rows.",
+    "expected_document_id": "pg-statistics-01"
+  }
+]

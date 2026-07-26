@@ -1,0 +1,64 @@
+{
+  "generated_at": "2026-07-24T18:30:32.450105+00:00",
+  "embedding_model": "qwen3-embedding-0.6b",
+  "index": {
+    "chunks": 24,
+    "dimensions": 1024
+  },
+  "metrics": {
+    "cases": 4,
+    "top1_accuracy": 1.0,
+    "hit_at_3": 1.0,
+    "average_query_latency_ms": 4440
+  },
+  "results": [
+    {
+      "case_id": "missing-index-selective-scan",
+      "expected_document_id": "pg-indexes-01",
+      "retrieved_document_ids": [
+        "pg-indexes-01",
+        "pg-explain-01",
+        "pg-sorting-01"
+      ],
+      "top1_hit": true,
+      "hit_at_3": true,
+      "latency_ms": 9041
+    },
+    {
+      "case_id": "nested-loop-many-inner-executions",
+      "expected_document_id": "pg-joins-01",
+      "retrieved_document_ids": [
+        "pg-joins-01",
+        "pg-indexes-01",
+        "pg-explain-01"
+      ],
+      "top1_hit": true,
+      "hit_at_3": true,
+      "latency_ms": 2968
+    },
+    {
+      "case_id": "external-merge-disk-sort",
+      "expected_document_id": "pg-sorting-01",
+      "retrieved_document_ids": [
+        "pg-sorting-01",
+        "pg-joins-01",
+        "pg-sorting-01"
+      ],
+      "top1_hit": true,
+      "hit_at_3": true,
+      "latency_ms": 2584
+    },
+    {
+      "case_id": "row-estimate-error",
+      "expected_document_id": "pg-statistics-01",
+      "retrieved_document_ids": [
+        "pg-statistics-01",
+        "pg-explain-01",
+        "pg-explain-01"
+      ],
+      "top1_hit": true,
+      "hit_at_3": true,
+      "latency_ms": 3169
+    }
+  ]
+}

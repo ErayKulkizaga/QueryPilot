@@ -1,0 +1,24 @@
+services:
+  postgres:
+    image: postgres:17-alpine
+    container_name: querypilot-postgres
+    environment:
+      POSTGRES_DB: querypilot
+      POSTGRES_USER: querypilot_owner
+      POSTGRES_PASSWORD: querypilot_owner_dev
+    ports:
+      - "5432:5432"
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U querypilot_owner -d querypilot"]
+      interval: 5s
+      timeout: 5s
+      retries: 20
+    volumes:
+      - querypilot-postgres-data:/var/lib/postgresql/data
+      - ./sql/001_init.sql:/docker-entrypoint-initdb.d/001_init.sql:ro
+      - ./sql/002_seed.sql:/docker-entrypoint-initdb.d/002_seed.sql:ro
+      - ./sql/003_permissions.sql:/docker-entrypoint-initdb.d/003_permissions.sql:ro
+
+volumes:
+  querypilot-postgres-data:
+

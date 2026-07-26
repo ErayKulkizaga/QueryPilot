@@ -1,0 +1,36 @@
+{
+  "source": "foundry_local",
+  "repair_attempted": false,
+  "generation_latency_ms": 36278,
+  "validation_errors": [],
+  "retrieved_document_ids": [
+    "pg-indexes-01",
+    "pg-indexes-01",
+    "pg-sorting-01"
+  ],
+  "report": {
+    "issue_category": "potential_missing_index",
+    "severity": "high",
+    "summary": "A sequential scan on customers discarded most examined rows.",
+    "plan_evidence": [
+      "Seq Scan on customers",
+      "Rows Removed by Filter: 24,999",
+      "Filter selectivity: 0.00%"
+    ],
+    "recommendation": "Review an index whose leading columns match the selective filter. Validate write cost and compare the plan before applying it.",
+    "recommendation_sql": "CREATE INDEX idx_customers_email ON customers (email);",
+    "citations": [
+      {
+        "document_id": "pg-indexes-01",
+        "title": "PostgreSQL Indexes and Selective Predicates",
+        "section": "When a sequential scan is reasonable"
+      },
+      {
+        "document_id": "pg-indexes-01",
+        "title": "PostgreSQL Indexes and Selective Predicates",
+        "section": "Index-only and bitmap access"
+      }
+    ],
+    "insufficient_context": false
+  }
+}
