@@ -33,7 +33,8 @@ python -m scripts.release_check --live
 - [x] Six-slide technical presentation exported and visually checked
 - [x] Final screenshots captured
 - [ ] Five-minute demo video recorded
-- [ ] Public source repository confirmed
+- [x] Public source repository confirmed:
+  [ErayKulkizaga/QueryPilot](https://github.com/ErayKulkizaga/QueryPilot)
 - [ ] Version updated and `v1.0.0` tag created after final artefacts
 
 The version tag is intentionally last. It should represent the exact commit
