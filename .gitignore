@@ -19,6 +19,7 @@ models/
 tmp/
 foundry-spike.log
 evaluation/*-download*.log
+*.inspect.ndjson
 
 # PostgreSQL / Docker
 postgres-data/

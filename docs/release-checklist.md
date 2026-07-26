@@ -1,0 +1,40 @@
+# QueryPilot Local release checklist
+
+## Automated gate
+
+Run from the repository root:
+
+```powershell
+python -m scripts.release_check
+```
+
+The default gate keeps Docker and Foundry Local off. It verifies required
+delivery files, Python tests, Ruff, and the public demo lint/build/tests.
+
+If PostgreSQL and Foundry Local are already running and a live integration
+check is wanted:
+
+```powershell
+python -m scripts.release_check --live
+```
+
+`--live` does not start or stop Docker; it only runs `scripts.api_smoke`.
+
+## Manual release items
+
+- [x] Deterministic local analysis path
+- [x] Evidence-gated no-answer behavior
+- [x] Strict model sentence-selection boundary
+- [x] Public browser-only demo
+- [x] Custom domain and TLS
+- [x] English README and measured results
+- [x] Architecture document
+- [x] Five-minute demo script
+- [x] Six-slide technical presentation exported and visually checked
+- [x] Final screenshots captured
+- [ ] Five-minute demo video recorded
+- [ ] Public source repository confirmed
+- [ ] Version updated and `v1.0.0` tag created after final artefacts
+
+The version tag is intentionally last. It should represent the exact commit
+containing the reviewed presentation, screenshots, and demo link.

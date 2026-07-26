@@ -8,6 +8,17 @@ and reports evidence-backed performance signals.
 This repository is the implementation of the seven-day MVP plan in
 `QueryPilot_Local_7_Gunluk_Proje_Raporu.pdf`.
 
+[Live demo](https://querypilot.eraykulkizaga.com/) ·
+[Architecture](docs/architecture.md) ·
+[Technical presentation](artifacts/QueryPilot_Local_Teknik_Sunum.pdf) ·
+[Release checklist](docs/release-checklist.md)
+
+![QueryPilot public demo showing a deterministic PostgreSQL plan diagnosis](artifacts/screenshots/querypilot-live-desktop.png)
+
+The public demo is intentionally database-free: pasted `EXPLAIN (FORMAT JSON)`
+plans are analyzed inside the browser. The full local runtime adds PostgreSQL,
+FastAPI, Streamlit, local retrieval, and optional Foundry Local enrichment.
+
 ## Current milestone
 
 The first working slice includes:
@@ -117,6 +128,20 @@ python -m evaluation.run_evaluation --with-retrieval --with-generation
 
 The generated vector files live under `data/index/` and are intentionally
 excluded from Git. Evaluation results are written under `evaluation/`.
+
+Project delivery references:
+
+- [`docs/architecture.md`](docs/architecture.md) — local and public runtime
+  boundaries
+- [`docs/demo-script.md`](docs/demo-script.md) — evidence-first five-minute demo
+- [`docs/release-checklist.md`](docs/release-checklist.md) — automated and
+  manual release gates
+
+Run the default release gate without starting Docker or Foundry Local:
+
+```powershell
+python -m scripts.release_check
+```
 
 Run the complete API smoke test while PostgreSQL is available:
 
