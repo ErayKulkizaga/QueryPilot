@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import {
   analyzeExplainJson,
   type AnalysisResult,
@@ -101,19 +101,31 @@ export function QueryPilotDemo() {
     [fixtureId],
   );
   const [customJson, setCustomJson] = useState("");
-  const [result, setResult] = useState<AnalysisResult | null>(() =>
-    analyzeExplainJson(DEMO_FIXTURES[0].json),
-  );
+  const [result, setResult] = useState<AnalysisResult | null>(null);
   const [error, setError] = useState("");
+  const [analysisRun, setAnalysisRun] = useState(0);
+  const [status, setStatus] = useState(
+    "Bir senaryo seçin ve analizi başlatın.",
+  );
+  const resultRef = useRef<HTMLDivElement>(null);
 
   const inputJson = mode === "samples" ? activeFixture.json : customJson;
+
+  useEffect(() => {
+    if (analysisRun === 0 || !resultRef.current) return;
+    resultRef.current.scrollIntoView({ behavior: "smooth", block: "start" });
+    resultRef.current.focus({ preventScroll: true });
+  }, [analysisRun]);
 
   function analyze() {
     try {
       setResult(analyzeExplainJson(inputJson));
       setError("");
+      setAnalysisRun((current) => current + 1);
+      setStatus("Analiz tamamlandı. Sonuç aşağıda gösteriliyor.");
     } catch (caught) {
       setResult(null);
+      setStatus("Plan analiz edilemedi.");
       setError(
         caught instanceof Error
           ? caught.message
@@ -126,9 +138,36 @@ export function QueryPilotDemo() {
     setFixtureId(id);
     const fixture = DEMO_FIXTURES.find((item) => item.id === id);
     if (fixture) {
-      setResult(analyzeExplainJson(fixture.json));
+      setResult(null);
       setError("");
+      setStatus(
+        `"${fixture.title}" seçildi. Sonucu görmek için Planı analiz et düğmesine basın.`,
+      );
     }
+  }
+
+  function chooseMode(nextMode: InputMode) {
+    setMode(nextMode);
+    setResult(null);
+    setError("");
+    if (nextMode === "json") {
+      setStatus(
+        customJson
+          ? "JSON hazır. Analizi başlatabilirsiniz."
+          : "Bir EXPLAIN JSON yapıştırın veya örnek planı yükleyin.",
+      );
+    } else {
+      setStatus(
+        `"${activeFixture.title}" seçili. Sonucu görmek için analizi başlatın.`,
+      );
+    }
+  }
+
+  function loadExampleJson() {
+    setCustomJson(DEMO_FIXTURES[0].json);
+    setResult(null);
+    setError("");
+    setStatus("Örnek EXPLAIN JSON yüklendi. Şimdi analizi başlatabilirsiniz.");
   }
 
   return (
@@ -198,7 +237,7 @@ export function QueryPilotDemo() {
                 role="tab"
                 aria-selected={mode === "samples"}
                 className={mode === "samples" ? "active" : ""}
-                onClick={() => setMode("samples")}
+                onClick={() => chooseMode("samples")}
               >
                 Hazır senaryolar
               </button>
@@ -207,7 +246,7 @@ export function QueryPilotDemo() {
                 role="tab"
                 aria-selected={mode === "json"}
                 className={mode === "json" ? "active" : ""}
-                onClick={() => setMode("json")}
+                onClick={() => chooseMode("json")}
               >
                 EXPLAIN JSON
               </button>
@@ -243,23 +282,35 @@ export function QueryPilotDemo() {
               />
               <div className="input-help">
                 <span>En fazla 200 KB ve 250 plan düğümü</span>
-                <span>İçerik cihazınızdan gönderilmez</span>
+                <button type="button" onClick={loadExampleJson}>
+                  Örnek EXPLAIN yükle
+                </button>
               </div>
             </div>
           )}
 
           <div className="analyze-row">
-            <button className="primary-button" type="button" onClick={analyze}>
-              Planı analiz et
-              <span aria-hidden="true">→</span>
-            </button>
-            <p>
-              Analiz, açık ve denetlenebilir eşiklerle cihazınızda tamamlanır.
-            </p>
+            <div>
+              <button className="primary-button" type="button" onClick={analyze}>
+                Planı analiz et
+                <span aria-hidden="true">→</span>
+              </button>
+              <p className="analysis-status" role="status">{status}</p>
+            </div>
+            <p>İçerik cihazınızdan gönderilmez.</p>
           </div>
 
           {error && <div className="error-message" role="alert">{error}</div>}
-          {result && <ResultPanel result={result} />}
+          {result && (
+            <div
+              key={analysisRun}
+              ref={resultRef}
+              className="result-anchor"
+              tabIndex={-1}
+            >
+              <ResultPanel result={result} />
+            </div>
+          )}
         </section>
       </div>
 

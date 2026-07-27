@@ -425,11 +425,24 @@ a {
 }
 
 .input-help {
+  align-items: center;
   color: var(--ink-soft);
   display: flex;
   font-size: 11px;
   justify-content: space-between;
   margin-top: 8px;
+}
+
+.input-help button {
+  background: transparent;
+  border: 0;
+  color: var(--green);
+  cursor: pointer;
+  font-size: 11px;
+  font-weight: 700;
+  padding: 4px 0;
+  text-decoration: underline;
+  text-underline-offset: 3px;
 }
 
 .analyze-row {
@@ -474,6 +487,24 @@ a {
   color: var(--ink-soft);
   font-size: 12px;
   margin: 0;
+}
+
+.analyze-row > div {
+  align-items: flex-start;
+  display: flex;
+  flex-direction: column;
+  gap: 9px;
+}
+
+.analyze-row .analysis-status {
+  color: var(--green-dark);
+  font-weight: 650;
+  max-width: 480px;
+}
+
+.result-anchor {
+  outline: none;
+  scroll-margin-top: 24px;
 }
 
 .error-message {

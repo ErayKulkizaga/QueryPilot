@@ -34,5 +34,6 @@ test("server-renders the QueryPilot public demo shell", async () => {
   assert.match(html, /Veriniz tarayıcıdan çıkmaz/);
   assert.match(html, /Hazır senaryolar/);
   assert.match(html, /EXPLAIN JSON/);
+  assert.match(html, /Bir senaryo seçin ve analizi başlatın/);
   assert.doesNotMatch(html, /codex-preview|react-loading-skeleton/i);
 });
