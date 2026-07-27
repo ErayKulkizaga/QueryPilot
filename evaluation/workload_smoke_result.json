@@ -1,0 +1,16 @@
+{
+  "captured_at": "2026-07-27T09:55:15.749101+00:00",
+  "ranking_basis": "total_exec_time_ms",
+  "recommendations_generated": false,
+  "direct_pg_stat_statements_access_denied": true,
+  "top_query": {
+    "query_id": "6643245221593750324",
+    "normalized_sql": "SELECT count(*) FROM orders WHERE total_amount > $1",
+    "calls": 6,
+    "total_exec_time_ms": 104.722,
+    "mean_exec_time_ms": 17.454,
+    "shared_blocks_read": 1033,
+    "temp_blocks_written": 0
+  },
+  "eligible_query_count": 2
+}

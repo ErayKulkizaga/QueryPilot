@@ -25,6 +25,10 @@ flowchart LR
     R --> D["Evidence-backed report"]
     D --> U
 
+    P --> W["Restricted workload statistics view"]
+    W --> T["Deterministic total-time ranking"]
+    T --> U
+
     D -->|optional user action| E["Enrichment endpoint"]
     E --> K["Local knowledge index"]
     K --> F["Foundry Local sentence selector"]
@@ -51,6 +55,22 @@ The current categories are potential missing index, expensive nested loop,
 disk-based sort, and cardinality misestimation. If no rule has sufficient
 evidence, the result is explicitly `no_clear_issue`; QueryPilot does not invent
 an optimization.
+
+### Workload prioritization
+
+`GET /api/v1/workload/queries` reads a restricted projection over
+`pg_stat_statements` and ranks eligible SELECT statements by total execution
+time. The application role cannot read the extension view directly. The
+projection exposes only the normalized query, call and timing counters, result
+rows, and selected block counters.
+
+This endpoint produces prioritization evidence, not an optimization finding.
+It never executes a captured statement and never returns recommendation SQL.
+Statements normalized to `$1`, `$2`, and similar placeholders are marked as
+requiring representative SQL before the existing analysis endpoint may be used.
+The live synthetic smoke result confirmed that the repeated `orders` scan ranked
+above a more frequently called primary-key lookup and that the application role
+could access only the restricted projection.
 
 ### Optional enrichment path
 
@@ -92,6 +112,7 @@ ignored.
 | --- | --- |
 | Submitted SQL | AST validation plus one-statement, read-only policy |
 | PostgreSQL | `SELECT`-only role, read-only transaction, statement timeout |
+| Workload statistics | Security-definer projection, SELECT/WITH filter, deterministic total-time ranking |
 | Recommendation | Display-only SQL; never applied automatically |
 | Plan evidence | Derived from normalized plan nodes, never from the model |
 | Retrieval | Local index and known document IDs |

@@ -11,3 +11,8 @@ def test_streamlit_app_renders_primary_analysis_form() -> None:
     assert not app.exception
     assert app.title[0].value == "QueryPilot Local"
     assert app.button[0].label == "Planı analiz et"
+    assert [tab.label for tab in app.tabs] == [
+        "Plan analizi",
+        "İş yükü öncelikleri",
+    ]
+    assert any(button.label == "İş yükünü yenile" for button in app.button)

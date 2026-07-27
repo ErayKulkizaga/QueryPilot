@@ -2,6 +2,14 @@ services:
   postgres:
     image: postgres:17-alpine
     container_name: querypilot-postgres
+    command:
+      [
+        "postgres",
+        "-c",
+        "shared_preload_libraries=pg_stat_statements",
+        "-c",
+        "pg_stat_statements.track=all",
+      ]
     environment:
       POSTGRES_DB: querypilot
       POSTGRES_USER: querypilot_owner
@@ -12,7 +20,7 @@ services:
       test:
         [
           "CMD-SHELL",
-          "test \"$$(psql -U querypilot_owner -d querypilot -tAc \"SELECT CASE WHEN to_regclass('public.customers') IS NOT NULL AND EXISTS (SELECT 1 FROM pg_roles WHERE rolname = 'querypilot_app') THEN 1 ELSE 0 END\")\" = \"1\"",
+          "test \"$$(psql -U querypilot_owner -d querypilot -tAc \"SELECT CASE WHEN to_regclass('public.customers') IS NOT NULL AND to_regclass('public.querypilot_workload_queries') IS NOT NULL AND EXISTS (SELECT 1 FROM pg_roles WHERE rolname = 'querypilot_app') THEN 1 ELSE 0 END\")\" = \"1\"",
         ]
       interval: 5s
       timeout: 5s
@@ -22,6 +30,7 @@ services:
       - ./sql/001_init.sql:/docker-entrypoint-initdb.d/001_init.sql:ro
       - ./sql/002_seed.sql:/docker-entrypoint-initdb.d/002_seed.sql:ro
       - ./sql/003_permissions.sql:/docker-entrypoint-initdb.d/003_permissions.sql:ro
+      - ./sql/004_workload_stats.sql:/docker-entrypoint-initdb.d/004_workload_stats.sql:ro
 
 volumes:
   querypilot-postgres-data:

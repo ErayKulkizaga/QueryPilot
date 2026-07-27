@@ -94,6 +94,14 @@ performance triage:
 Tool-calling may be explored in version 2, but it must remain behind the same
 deterministic evidence and authorization boundaries.
 
+### Version 2 progress
+
+The first version 2 slice adds least-privilege `pg_stat_statements` workload
+reading, deterministic total-execution-time ranking, an API endpoint, and a
+Streamlit priority view. Ranking remains separate from plan diagnosis:
+statistics alone cannot create a recommendation, and normalized parameter
+placeholders are never executed automatically.
+
 ## Freeze decision
 
 Version 1 scope is frozen. The only remaining version 1 actions are:

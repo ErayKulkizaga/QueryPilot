@@ -1,3 +1,4 @@
+from datetime import datetime
 from enum import StrEnum
 from typing import Any, Literal
 
@@ -76,3 +77,24 @@ class HealthResponse(StrictModel):
     status: Literal["ok"]
     service: Literal["querypilot-local"]
     version: str
+
+
+class WorkloadQuery(StrictModel):
+    rank: int = Field(ge=1)
+    query_id: str
+    normalized_sql: str
+    calls: int = Field(ge=0)
+    total_exec_time_ms: float = Field(ge=0)
+    mean_exec_time_ms: float = Field(ge=0)
+    result_rows: int = Field(ge=0)
+    shared_blocks_read: int = Field(ge=0)
+    temp_blocks_written: int = Field(ge=0)
+    ranking_reason: str
+    requires_representative_sql: bool
+
+
+class WorkloadQueryListResponse(StrictModel):
+    captured_at: datetime
+    ranking_basis: Literal["total_exec_time_ms"]
+    recommendations_generated: Literal[False]
+    queries: list[WorkloadQuery]

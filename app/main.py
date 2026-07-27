@@ -5,6 +5,7 @@ from fastapi import FastAPI
 
 from app import __version__
 from app.api.analyses import router as analyses_router
+from app.api.workload import router as workload_router
 from app.reporting import shutdown_reporting_service
 from app.schemas import HealthResponse
 
@@ -23,6 +24,7 @@ def create_app() -> FastAPI:
         lifespan=lifespan,
     )
     app.include_router(analyses_router)
+    app.include_router(workload_router)
 
     @app.get("/health", response_model=HealthResponse, tags=["system"])
     def health() -> HealthResponse:

@@ -21,6 +21,7 @@ class Settings(BaseSettings):
     foundry_embedding_model: str = "qwen3-embedding-0.6b"
     generation_repair_cutoff_seconds: float = Field(default=8.0, ge=0, le=60)
     analysis_ttl_seconds: int = Field(default=900, ge=60, le=86_400)
+    workload_min_calls: int = Field(default=2, ge=1, le=1_000_000)
 
 
 @lru_cache

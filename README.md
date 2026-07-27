@@ -48,6 +48,8 @@ The first working slice includes:
 - a 12-scenario rule, no-answer, retrieval, and generation evaluation
 - a database-free public demo that analyzes sample or pasted EXPLAIN JSON
   entirely in the browser
+- a least-privilege `pg_stat_statements` workload view and deterministic
+  total-execution-time ranking API
 
 ## Local setup
 
@@ -61,6 +63,18 @@ Copy-Item .env.example .env
 docker compose up -d
 uvicorn app.main:app --reload
 ```
+
+Existing QueryPilot Docker volumes created before workload prioritization do
+not contain the extension or restricted view. Because the local database is a
+synthetic fixture, recreate only this project's volume once when upgrading:
+
+```powershell
+docker compose down -v
+docker compose up -d
+```
+
+This removes the locally seeded QueryPilot fixture data and recreates it; it
+does not affect other Docker projects.
 
 If port `5432` is already occupied, select another host port and use the same
 port in the application connection string:
@@ -76,6 +90,24 @@ Open `http://127.0.0.1:8000/docs` and verify:
 ```powershell
 Invoke-RestMethod http://127.0.0.1:8000/health
 ```
+
+List eligible SELECT statements ranked by total execution time:
+
+```powershell
+Invoke-RestMethod `
+  -Uri "http://127.0.0.1:8000/api/v1/workload/queries?limit=10"
+```
+
+The workload endpoint returns ranking evidence only. It does not execute a
+captured statement, create an index, or produce an optimization recommendation.
+PostgreSQL-normalized `$1`/`$2` statements require representative parameter
+values before they can be submitted separately to plan analysis.
+
+The committed workload smoke run executed a sequential `orders` aggregate six
+times and a primary-key lookup fifteen times. The aggregate ranked first by
+total execution time, only two user-workload queries remained after
+infrastructure filtering, and direct `pg_stat_statements` access from the
+application role was denied.
 
 Analyze the missing-index demo:
 
@@ -175,6 +207,7 @@ Run the complete API smoke test while PostgreSQL is available:
 ```powershell
 docker compose up -d
 python -m scripts.api_smoke
+python -m scripts.workload_smoke
 docker compose stop
 ```
 

@@ -67,6 +67,23 @@ def _post(path: str, payload: dict[str, Any] | None, timeout: float) -> dict[str
         ) from exc
 
 
+def _get(path: str, timeout: float) -> dict[str, Any]:
+    try:
+        response = httpx.get(f"{API_BASE_URL}{path}", timeout=timeout)
+        response.raise_for_status()
+        return response.json()
+    except httpx.HTTPStatusError as exc:
+        try:
+            detail = exc.response.json().get("detail", exc.response.text)
+        except ValueError:
+            detail = exc.response.text
+        raise RuntimeError(str(detail)) from exc
+    except httpx.RequestError as exc:
+        raise RuntimeError(
+            "QueryPilot servisine ulaşılamadı. Yerel API ve PostgreSQL çalışıyor mu?"
+        ) from exc
+
+
 def _render_report(report: dict[str, Any], *, enriched: bool) -> None:
     source = report["report_source"]
     if enriched and source == "foundry_local":
@@ -116,57 +133,48 @@ def _render_report(report: dict[str, Any], *, enriched: bool) -> None:
             )
 
 
-st.set_page_config(
-    page_title="QueryPilot Local",
-    page_icon="🧭",
-    layout="wide",
-)
-
-st.title("QueryPilot Local")
-st.caption(
-    "PostgreSQL sorgu planını yerelde inceler; yalnızca planda kanıtlanan "
-    "sorunlar için öneri verir."
-)
-
-with st.form("analysis-form"):
-    mode = st.radio(
-        "Sorgu kaynağı",
-        ("Hazır senaryo", "Kendi SQL sorgum"),
-        horizontal=True,
-    )
-    if mode == "Hazır senaryo":
-        scenario_name = st.selectbox("Senaryo", list(SCENARIOS))
-        scenario = SCENARIOS[scenario_name]
-        st.code(scenario["sql"], language="sql")
-        request_payload = {"scenario_id": scenario["scenario_id"]}
-    else:
-        sql = st.text_area(
-            "Salt okunur SQL",
-            height=180,
-            placeholder="SELECT ...",
+def _render_analysis_workspace() -> None:
+    with st.form("analysis-form"):
+        mode = st.radio(
+            "Sorgu kaynağı",
+            ("Hazır senaryo", "Kendi SQL sorgum"),
+            horizontal=True,
         )
-        request_payload = {"sql": sql}
-    submitted = st.form_submit_button(
-        "Planı analiz et",
-        type="primary",
-        use_container_width=True,
-    )
-
-if submitted:
-    st.session_state.pop("enrichment", None)
-    with st.spinner("PostgreSQL planı ve kural kanıtları inceleniyor…"):
-        try:
-            st.session_state["analysis"] = _post(
-                "/api/v1/analyses",
-                request_payload,
-                timeout=10,
+        if mode == "Hazır senaryo":
+            scenario_name = st.selectbox("Senaryo", list(SCENARIOS))
+            scenario = SCENARIOS[scenario_name]
+            st.code(scenario["sql"], language="sql")
+            request_payload = {"scenario_id": scenario["scenario_id"]}
+        else:
+            sql = st.text_area(
+                "Salt okunur SQL",
+                height=180,
+                placeholder="SELECT ...",
             )
-        except RuntimeError as exc:
-            st.session_state.pop("analysis", None)
-            st.error(str(exc))
+            request_payload = {"sql": sql}
+        submitted = st.form_submit_button(
+            "Planı analiz et",
+            type="primary",
+            width="stretch",
+        )
 
-analysis = st.session_state.get("analysis")
-if analysis:
+    if submitted:
+        st.session_state.pop("enrichment", None)
+        with st.spinner("PostgreSQL planı ve kural kanıtları inceleniyor…"):
+            try:
+                st.session_state["analysis"] = _post(
+                    "/api/v1/analyses",
+                    request_payload,
+                    timeout=10,
+                )
+            except RuntimeError as exc:
+                st.session_state.pop("analysis", None)
+                st.error(str(exc))
+
+    analysis = st.session_state.get("analysis")
+    if not analysis:
+        return
+
     st.divider()
     _render_report(analysis, enriched=False)
 
@@ -177,7 +185,7 @@ if analysis:
             "Model yeni teknik metin yazamaz; yalnızca kural motorunun önceden "
             "onayladığı açıklama cümlelerini seçebilir. Geçersiz seçim reddedilir."
         )
-        if st.button("Onaylı açıklamayı seç", use_container_width=True):
+        if st.button("Onaylı açıklamayı seç", width="stretch"):
             with st.spinner(
                 "Yerel model güvenli cümle havuzundan seçim yapıyor…"
             ):
@@ -197,3 +205,110 @@ if analysis:
 
     with st.expander("Ham PostgreSQL planını göster"):
         st.json(analysis["raw_plan"])
+
+
+def _render_workload_workspace() -> None:
+    st.subheader("İş yükü öncelikleri")
+    st.write(
+        "QueryPilot, PostgreSQL istatistiklerini toplam çalışma süresine göre "
+        "sıralar. Bu liste bir optimizasyon önerisi değildir."
+    )
+
+    if st.button(
+        "İş yükünü yenile",
+        type="primary",
+        width="stretch",
+    ):
+        with st.spinner("PostgreSQL iş yükü istatistikleri okunuyor…"):
+            try:
+                st.session_state["workload"] = _get(
+                    "/api/v1/workload/queries?limit=10",
+                    timeout=10,
+                )
+            except RuntimeError as exc:
+                st.session_state.pop("workload", None)
+                st.error(str(exc))
+
+    workload = st.session_state.get("workload")
+    if not workload:
+        st.info(
+            "Henüz istatistik yüklenmedi. PostgreSQL çalışırken İş yükünü "
+            "yenile düğmesine basın."
+        )
+        return
+
+    queries = workload["queries"]
+    if not queries:
+        st.info(
+            "En az iki kez çalışmış uygun bir SELECT sorgusu bulunamadı."
+        )
+        return
+
+    st.caption(
+        "Sıralama ölçütü: toplam çalışma süresi. İstatistikler öneri veya "
+        "şema değişikliği üretmez."
+    )
+    st.dataframe(
+        [
+            {
+                "Sıra": query["rank"],
+                "Çağrı": query["calls"],
+                "Toplam süre (ms)": query["total_exec_time_ms"],
+                "Ortalama süre (ms)": query["mean_exec_time_ms"],
+                "Okunan blok": query["shared_blocks_read"],
+                "Geçici blok": query["temp_blocks_written"],
+            }
+            for query in queries
+        ],
+        hide_index=True,
+        width="stretch",
+    )
+
+    selected_rank = st.selectbox(
+        "İncelenecek aday",
+        [query["rank"] for query in queries],
+        format_func=lambda rank: (
+            f"#{rank} · "
+            f'{next(query["total_exec_time_ms"] for query in queries if query["rank"] == rank)} ms'
+        ),
+    )
+    selected = next(
+        query for query in queries if query["rank"] == selected_rank
+    )
+    st.code(selected["normalized_sql"], language="sql")
+    st.caption(selected["ranking_reason"])
+
+    if selected["requires_representative_sql"]:
+        st.warning(
+            "PostgreSQL bu sorgudaki sabitleri $1, $2 gibi parametrelere "
+            "dönüştürmüş. Plan analizi için gerçek parametreleri içeren temsili "
+            "SQL sorgusunu Plan analizi sekmesine yapıştırın."
+        )
+    else:
+        st.info(
+            "Bu istatistik yalnızca sorgunun önceliğini gösterir. Öneri almak "
+            "için sorguyu Plan analizi sekmesinde ayrıca çalıştırın."
+        )
+
+
+st.set_page_config(
+    page_title="QueryPilot Local",
+    page_icon="🧭",
+    layout="wide",
+)
+
+st.title("QueryPilot Local")
+st.caption(
+    "PostgreSQL sorgu planını yerelde inceler; yalnızca planda kanıtlanan "
+    "sorunlar için öneri verir."
+)
+
+analysis_tab, workload_tab = st.tabs(
+    ("Plan analizi", "İş yükü öncelikleri")
+)
+
+with analysis_tab:
+    _render_analysis_workspace()
+
+with workload_tab:
+    _render_workload_workspace()

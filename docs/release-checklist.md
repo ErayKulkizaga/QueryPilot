@@ -40,6 +40,8 @@ python -m scripts.release_check --live
 - [x] Dependency list reviewed and clean-install compatibility verified
 - [x] Release gate passed from a newly created Python environment
 - [x] Secret and dependency audits passed with zero remaining findings
+- [x] V2 workload prioritization preserves evidence-gated recommendations
+- [x] V2 live workload ranking and direct-access denial smoke recorded
 - [ ] Five-minute demo video recorded
 - [x] Public source repository confirmed:
   [ErayKulkizaga/QueryPilot](https://github.com/ErayKulkizaga/QueryPilot)
