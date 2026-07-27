@@ -29,9 +29,17 @@ python -m scripts.release_check --live
 - [x] Custom domain and TLS
 - [x] English README and measured results
 - [x] Architecture document
+- [x] MVP closeout and version 2 direction documented
 - [x] Five-minute demo script
 - [x] Six-slide technical presentation exported and visually checked
 - [x] Final screenshots captured
+- [x] Canonical evaluation and API smoke artefacts refreshed
+- [x] Reproducible before/after plan benchmark recorded
+- [x] Two-scenario API rehearsal recorded from a fresh Docker database
+- [x] Final slide includes measured proof, limitations, and tool-calling v2
+- [x] Dependency list reviewed and clean-install compatibility verified
+- [x] Release gate passed from a newly created Python environment
+- [x] Secret and dependency audits passed with zero remaining findings
 - [ ] Five-minute demo video recorded
 - [x] Public source repository confirmed:
   [ErayKulkizaga/QueryPilot](https://github.com/ErayKulkizaga/QueryPilot)

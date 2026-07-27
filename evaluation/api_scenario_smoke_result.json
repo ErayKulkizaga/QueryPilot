@@ -1,0 +1,31 @@
+{
+  "scenario_count": 2,
+  "passed_count": 2,
+  "results": [
+    {
+      "name": "missing-index",
+      "passed": true,
+      "issue_category": "potential_missing_index",
+      "insufficient_context": false,
+      "plan_evidence": [
+        "Seq Scan on customers",
+        "Rows Removed by Filter: 24,999",
+        "Filter selectivity: 0.00%"
+      ],
+      "latency_ms": 189,
+      "report_source": "deterministic"
+    },
+    {
+      "name": "healthy-primary-key",
+      "passed": true,
+      "issue_category": "no_clear_issue",
+      "insufficient_context": true,
+      "plan_evidence": [
+        "Execution Time: 0.12 ms",
+        "Plan nodes inspected: 1"
+      ],
+      "latency_ms": 31,
+      "report_source": "deterministic"
+    }
+  ]
+}

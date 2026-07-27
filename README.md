@@ -11,13 +11,20 @@ This repository is the implementation of the seven-day MVP plan in
 [Live demo](https://querypilot.eraykulkizaga.com/) ·
 [Architecture](docs/architecture.md) ·
 [Technical presentation](artifacts/QueryPilot_Local_Teknik_Sunum.pdf) ·
-[Release checklist](docs/release-checklist.md)
+[Release checklist](docs/release-checklist.md) ·
+[MVP closeout](docs/mvp-closeout.md)
 
 ![QueryPilot public demo showing a deterministic PostgreSQL plan diagnosis](artifacts/screenshots/querypilot-live-desktop.png)
 
 The public demo is intentionally database-free: pasted `EXPLAIN (FORMAT JSON)`
 plans are analyzed inside the browser. The full local runtime adds PostgreSQL,
 FastAPI, Streamlit, local retrieval, and optional Foundry Local enrichment.
+
+The MVP is a safety-architecture demonstration, not an attempt to replace a
+general-purpose model or a DBA. Its differentiator is enforced behavior:
+evidence and known citations are required before a recommendation can exist.
+The planned version 2 direction is automated query triage and plan-regression
+detection using `pg_stat_statements`.
 
 ## Current milestone
 
@@ -53,6 +60,15 @@ python -m pip install -r requirements-dev.txt
 Copy-Item .env.example .env
 docker compose up -d
 uvicorn app.main:app --reload
+```
+
+If port `5432` is already occupied, select another host port and use the same
+port in the application connection string:
+
+```powershell
+$env:QUERYPILOT_POSTGRES_PORT = "5433"
+$env:QUERYPILOT_DATABASE_URL = "postgresql://querypilot_app:querypilot_app_dev@localhost:5433/querypilot"
+docker compose up -d
 ```
 
 Open `http://127.0.0.1:8000/docs` and verify:
@@ -128,6 +144,17 @@ python -m evaluation.run_evaluation --with-retrieval --with-generation
 
 The generated vector files live under `data/index/` and are intentionally
 excluded from Git. Evaluation results are written under `evaluation/`.
+
+Measure the synthetic missing-index fixture before and after the recommended
+index. The script restores the fixture without the index when it finishes:
+
+```powershell
+python -m scripts.before_after_benchmark
+```
+
+The latest committed seven-run medians are 1.671 ms for the sequential scan and
+0.074 ms for the index scan. This is a synthetic local-fixture observation, not
+a production performance guarantee.
 
 Project delivery references:
 

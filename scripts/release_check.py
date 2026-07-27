@@ -15,7 +15,11 @@ REQUIRED_FILES = (
     ROOT / "docs" / "demo-script.md",
     ROOT / "docs" / "release-checklist.md",
     ROOT / "docs" / "technical-spike.md",
-    ROOT / "evaluation" / "results_qwen2.5-1.5b.json",
+    ROOT / "evaluation" / "results.json",
+    ROOT / "evaluation" / "api_smoke_result.json",
+    ROOT / "evaluation" / "api_scenario_smoke_result.json",
+    ROOT / "evaluation" / "before_after_benchmark.json",
+    ROOT / "evaluation" / "security_audit.json",
     ROOT / "artifacts" / "QueryPilot_Local_Teknik_Sunum.pptx",
     ROOT / "artifacts" / "QueryPilot_Local_Teknik_Sunum.pdf",
     ROOT / "artifacts" / "screenshots" / "querypilot-live-desktop.png",
@@ -64,6 +68,7 @@ def npm_executable() -> str:
 def main() -> None:
     args = parse_args()
     verify_required_files()
+    run("tracked secret scan", [sys.executable, "-m", "scripts.secret_scan"])
     run("python tests", [sys.executable, "-m", "pytest"])
     run("python lint", [sys.executable, "-m", "ruff", "check", "."])
 

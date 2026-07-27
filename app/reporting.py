@@ -10,6 +10,7 @@ from app.rag.index import VectorIndex
 from app.rag.retriever import Retriever
 
 ROOT = Path(__file__).resolve().parents[1]
+_active_reporting_service: "ReportingService | None" = None
 
 
 class ReportingService:
@@ -38,6 +39,9 @@ class ReportingService:
         sources = self._retriever.retrieve(retrieval_query, top_k=3)
         return self._generator.generate(analysis=analysis, sources=sources)
 
+    def close(self) -> None:
+        self._generator.close()
+
 
 @lru_cache(maxsize=1)
 def _build_reporting_service(
@@ -47,6 +51,7 @@ def _build_reporting_service(
     embedding_model_alias: str,
     repair_cutoff_seconds: float,
 ) -> ReportingService:
+    global _active_reporting_service
     index_root = ROOT / "data" / "index"
     index = VectorIndex.load(
         vectors_path=index_root / "querypilot_embeddings.npz",
@@ -57,11 +62,12 @@ def _build_reporting_service(
         chat_model_alias=chat_model_alias,
         embedding_model_alias=embedding_model_alias,
     )
-    return ReportingService(
+    _active_reporting_service = ReportingService(
         client=client,
         retriever=Retriever(index=index, embedder=FoundryEmbedder(client)),
         repair_cutoff_seconds=repair_cutoff_seconds,
     )
+    return _active_reporting_service
 
 
 def get_reporting_service(settings: Settings) -> ReportingService:
@@ -71,3 +77,11 @@ def get_reporting_service(settings: Settings) -> ReportingService:
         embedding_model_alias=settings.foundry_embedding_model,
         repair_cutoff_seconds=settings.generation_repair_cutoff_seconds,
     )
+
+
+def shutdown_reporting_service() -> None:
+    global _active_reporting_service
+    if _active_reporting_service is not None:
+        _active_reporting_service.close()
+        _active_reporting_service = None
+    _build_reporting_service.cache_clear()

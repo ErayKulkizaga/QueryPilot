@@ -110,9 +110,15 @@ On the committed 12-scenario fixture set:
 - `qwen2.5-1.5b` accepted sentence selections: 4/4;
 - average optional selection latency on CPU: 20,243 ms.
 
+The committed synthetic missing-index benchmark uses seven repetitions. Its
+latest observed medians were 1.671 ms for the sequential scan and 0.074 ms for
+the index scan. PostgreSQL named `idx_customers_email` in the after plan. The
+benchmark restores the default fixture without the index when it finishes.
+
 These are MVP fixture results, not production workload claims. The local model
 is optional because its CPU latency is unsuitable for the primary response
-path.
+path. The observed plan timing is also a local fixture result, not a production
+performance guarantee.
 
 ## Deployment map
 

@@ -177,6 +177,11 @@ class GroundedReportGenerator:
         self._repair_cutoff_seconds = repair_cutoff_seconds
         self._clock = clock
 
+    def close(self) -> None:
+        close = getattr(self._client, "close", None)
+        if close is not None:
+            close()
+
     def _latency_ms(self, started: float) -> int:
         return round((self._clock() - started) * 1000)
 

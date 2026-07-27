@@ -1,0 +1,36 @@
+{
+  "audited_at_utc": "2026-07-27T08:20:00Z",
+  "tracked_secret_scan": {
+    "status": "passed",
+    "tracked_file_count": 108,
+    "finding_count": 0,
+    "command": "python -m scripts.secret_scan"
+  },
+  "python_development_dependencies": {
+    "status": "passed",
+    "dependency_count": 67,
+    "known_vulnerability_count": 0,
+    "command": "python -m pip_audit -r requirements-dev.txt",
+    "details": "evaluation/python_audit.json"
+  },
+  "python_foundry_dependencies": {
+    "status": "passed",
+    "dependency_count": 24,
+    "known_vulnerability_count": 0,
+    "command": "python -m pip_audit -r requirements-foundry.txt",
+    "details": "evaluation/python_foundry_audit.json"
+  },
+  "public_demo_production_dependencies": {
+    "status": "passed",
+    "production_dependency_count": 21,
+    "known_vulnerability_count": 0,
+    "command": "npm audit --omit=dev"
+  },
+  "resolved_findings": [
+    {
+      "package": "pytest",
+      "previous_constraint": ">=8.3,<9",
+      "resolution": "Constraint raised to >=9.0.3,<10 after PYSEC-2026-1845 was detected."
+    }
+  ]
+}

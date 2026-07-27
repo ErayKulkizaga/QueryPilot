@@ -5,7 +5,7 @@
     "version": "0.1.0"
   },
   "analysis": {
-    "analysis_id": "ceb891b7d9e24ef4959db1142f16cdf7",
+    "analysis_id": "e0ff2b48e21e4b4cbe69671c95cd2dfe",
     "issue_category": "potential_missing_index",
     "severity": "high",
     "plan_evidence": [
@@ -15,7 +15,7 @@
     ],
     "recommendation_sql": "CREATE INDEX idx_customers_email ON customers (email);",
     "insufficient_context": false,
-    "latency_ms": 208,
+    "latency_ms": 752,
     "report_source": "deterministic",
     "enrichment_available": true
   },
@@ -25,22 +25,12 @@
         "document_id": "pg-indexes-01",
         "title": "PostgreSQL Indexes and Selective Predicates",
         "section": "When a sequential scan is reasonable"
-      },
-      {
-        "document_id": "pg-sorting-01",
-        "title": "PostgreSQL Sorting and Temporary Disk Use",
-        "section": "Ordered index access"
-      },
-      {
-        "document_id": "pg-explain-01",
-        "title": "Reading PostgreSQL EXPLAIN Plans",
-        "section": "Buffers and rows removed"
       }
     ],
     "insufficient_context": false,
-    "latency_ms": 27594,
-    "generation_latency_ms": 17554,
+    "latency_ms": 56631,
+    "generation_latency_ms": 43891,
     "repair_attempted": false,
-    "report_source": "deterministic_fallback"
+    "report_source": "foundry_local"
   }
 }

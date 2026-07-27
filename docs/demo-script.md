@@ -82,6 +82,8 @@ Run the same query again and compare the plan:
 - measured execution time before and after.
 
 Do not claim a fixed speed-up. Read the actual numbers visible in this run.
+For rehearsal, the latest committed seven-run medians are 1.671 ms before and
+0.074 ms after; treat them as a reference to reproduce, not a guaranteed result.
 
 ## 04:35–05:00 — Close with evidence and limitations
 
@@ -91,6 +93,9 @@ Show the evaluation summary:
 - 12/12 no-answer decisions;
 - 9/9 retrieval Hit@3 cases;
 - 4/4 valid response citations.
+
+Show the final slide with the measured before/after plan, the narrow MVP
+limitations, and tool-calling v2 as future work.
 
 Close with the limitations:
 

@@ -2,17 +2,17 @@
   "scenario_count": 12,
   "models": {
     "embedding": "qwen3-embedding-0.6b",
-    "chat": "qwen2.5-1.5b"
+    "chat": "qwen2.5-0.5b"
   },
   "metrics": {
     "rule_diagnosis_accuracy": 1.0,
     "no_answer_accuracy": 1.0,
     "retrieval_hit_at_3": 1.0,
     "generation_sample_count": 4,
-    "accepted_generation_rate": 1.0,
+    "accepted_generation_rate": 0.25,
     "response_citation_valid_rate": 1.0,
-    "generation_average_latency_ms": 20243,
-    "generation_p95_latency_ms": 30444
+    "generation_average_latency_ms": 12633,
+    "generation_p95_latency_ms": 24104
   },
   "results": [
     {
@@ -30,9 +30,12 @@
         "pg-sorting-01"
       ],
       "retrieval_hit_at_3": true,
-      "generation_source": "foundry_local",
-      "generation_latency_ms": 30444,
-      "generation_validation_errors": [],
+      "generation_source": "deterministic_fallback",
+      "generation_latency_ms": 24104,
+      "generation_validation_errors": [
+        "initial: structured output validation failed: 7 validation errors for GeneratedExplanation\nsummary_sentence_id\n  Field required [type=missing, input_value={'deterministic_finding':...ecommendation_context'}}, input_type=dict]\n    For further information visit https://errors.pydantic.dev/2.13/v/missing\nrecommendation_sentence_id\n  Field required [type=missing, input_value={'deterministic_finding':...ecommendation_context'}}, input_type=dict]\n    For further information visit https://errors.pydantic.dev/2.13/v/missing\ndeterministic_finding\n  Extra inputs are not permitted [type=extra_forbidden, input_value={'issue_category': 'poten...y to reduce row count.'}, input_type=dict]\n    For further information visit https://errors.pydantic.dev/2.13/v/extra_forbidden\nretrieved_sources\n  Extra inputs are not permitted [type=extra_forbidden, input_value=[{'document_id': 'pg-inde...al scan is reasonable'}], input_type=list]\n    For further information visit https://errors.pydantic.dev/2.13/v/extra_forbidden\napproved_sentences\n  Extra inputs are not permitted [type=extra_forbidden, input_value={'summary': {'summary_fin...the current workload.'}}, input_type=dict]\n    For further information visit https://errors.pydantic.dev/2.13/v/extra_forbidden\nselection_task\n  Extra inputs are not permitted [type=extra_forbidden, input_value={'allowed_summary_sentenc...ecommendation_context']}, input_type=dict]\n    For further information visit https://errors.pydantic.dev/2.13/v/extra_forbidden\nrequired_output_example\n  Extra inputs are not permitted [type=extra_forbidden, input_value={'summary_sentence_id': '...recommendation_context'}, input_type=dict]\n    For further information visit https://errors.pydantic.dev/2.13/v/extra_forbidden",
+        "repair skipped because initial generation exceeded 8.0 seconds"
+      ],
       "response_citations_valid": true
     },
     {
@@ -90,9 +93,14 @@
         "pg-explain-01"
       ],
       "retrieval_hit_at_3": true,
-      "generation_source": "foundry_local",
-      "generation_latency_ms": 16503,
-      "generation_validation_errors": [],
+      "generation_source": "deterministic_fallback",
+      "generation_latency_ms": 11947,
+      "generation_validation_errors": [
+        "initial: summary_sentence_id is not in the approved sentence list",
+        "initial: recommendation_sentence_id is not in the approved sentence list",
+        "repair: summary_sentence_id is not in the approved sentence list",
+        "repair: recommendation_sentence_id is not in the approved sentence list"
+      ],
       "response_citations_valid": true
     },
     {
@@ -131,7 +139,7 @@
       ],
       "retrieval_hit_at_3": true,
       "generation_source": "foundry_local",
-      "generation_latency_ms": 16055,
+      "generation_latency_ms": 5522,
       "generation_validation_errors": [],
       "response_citations_valid": true
     },
@@ -170,9 +178,12 @@
         "pg-statistics-01"
       ],
       "retrieval_hit_at_3": true,
-      "generation_source": "foundry_local",
-      "generation_latency_ms": 17971,
-      "generation_validation_errors": [],
+      "generation_source": "deterministic_fallback",
+      "generation_latency_ms": 8958,
+      "generation_validation_errors": [
+        "initial: structured output validation failed: 6 validation errors for GeneratedExplanation\nsummary_sentence_id\n  Field required [type=missing, input_value={'selected_sentence_id': ...evidence supports it.'}}, input_type=dict]\n    For further information visit https://errors.pydantic.dev/2.13/v/missing\nrecommendation_sentence_id\n  Field required [type=missing, input_value={'selected_sentence_id': ...evidence supports it.'}}, input_type=dict]\n    For further information visit https://errors.pydantic.dev/2.13/v/missing\nselected_sentence_id\n  Extra inputs are not permitted [type=extra_forbidden, input_value='summary_context', input_type=str]\n    For further information visit https://errors.pydantic.dev/2.13/v/extra_forbidden\napproval_notes\n  Extra inputs are not permitted [type=extra_forbidden, input_value=[{'finding_type': 'cardin...y from observed rows.'}], input_type=list]\n    For further information visit https://errors.pydantic.dev/2.13/v/extra_forbidden\nevaluation_criteria\n  Extra inputs are not permitted [type=extra_forbidden, input_value=[{'criteria': ['data corr...95, 'decision': 'High'}], input_type=list]\n    For further information visit https://errors.pydantic.dev/2.13/v/extra_forbidden\nrecommendation\n  Extra inputs are not permitted [type=extra_forbidden, input_value={'recommendation_type': '... evidence supports it.'}, input_type=dict]\n    For further information visit https://errors.pydantic.dev/2.13/v/extra_forbidden",
+        "repair skipped because initial generation exceeded 8.0 seconds"
+      ],
       "response_citations_valid": true
     },
     {

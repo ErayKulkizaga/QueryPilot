@@ -1,8 +1,18 @@
+from collections.abc import AsyncIterator
+from contextlib import asynccontextmanager
+
 from fastapi import FastAPI
 
 from app import __version__
 from app.api.analyses import router as analyses_router
+from app.reporting import shutdown_reporting_service
 from app.schemas import HealthResponse
+
+
+@asynccontextmanager
+async def lifespan(_: FastAPI) -> AsyncIterator[None]:
+    yield
+    shutdown_reporting_service()
 
 
 def create_app() -> FastAPI:
@@ -10,6 +20,7 @@ def create_app() -> FastAPI:
         title="QueryPilot Local",
         version=__version__,
         description="Safety-first PostgreSQL execution-plan analysis API.",
+        lifespan=lifespan,
     )
     app.include_router(analyses_router)
 
@@ -25,4 +36,3 @@ def create_app() -> FastAPI:
 
 
 app = create_app()
-
