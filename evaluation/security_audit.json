@@ -1,5 +1,5 @@
 {
-  "audited_at_utc": "2026-07-28T15:59:32Z",
+  "audited_at_utc": "2026-07-28T19:41:44Z",
   "tracked_secret_scan": {
     "status": "passed",
     "tracked_file_count": 131,
@@ -8,7 +8,7 @@
   },
   "python_environment_dependencies": {
     "status": "passed",
-    "dependency_count": 98,
+    "dependency_count": 99,
     "known_vulnerability_count": 0,
     "command": "python -m pip_audit --local --progress-spinner off"
   },
@@ -52,6 +52,10 @@
     {
       "area": "continuous integration",
       "resolution": "Dependency audits, an 80% coverage floor, security lint, and fresh PostgreSQL workload/baseline smoke checks are enforced."
+    },
+    {
+      "area": "Python packaging tools",
+      "resolution": "The vulnerable setuptools 79.0.1 bundled in the GitHub Actions image is upgraded and pinned to setuptools 83.0.0 or newer before dependency auditing."
     }
   ]
 }

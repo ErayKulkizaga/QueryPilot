@@ -3,4 +3,5 @@ pytest>=9.0.3,<10
 pytest-cov>=6,<7
 pip-audit>=2.9,<3
 ruff>=0.9,<1
+setuptools>=83
 httpx2>=2.9,<3

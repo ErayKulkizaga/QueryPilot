@@ -32,8 +32,8 @@ jobs:
           cache: npm
           cache-dependency-path: public-demo/package-lock.json
 
-      - name: Upgrade Python package installer
-        run: python -m pip install --upgrade pip
+      - name: Upgrade Python packaging tools
+        run: python -m pip install --upgrade pip setuptools
 
       - name: Install Python dependencies
         run: python -m pip install -r requirements-dev.txt
