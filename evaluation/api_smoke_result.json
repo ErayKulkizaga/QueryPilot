@@ -5,7 +5,7 @@
     "version": "1.0.0"
   },
   "analysis": {
-    "analysis_id": "b102d165394649ee94b4e7b8f2a9d356",
+    "analysis_id": "19b36e16d41b4d44a68efcbc38dcfd63",
     "issue_category": "potential_missing_index",
     "severity": "high",
     "plan_evidence": [
@@ -15,7 +15,7 @@
     ],
     "recommendation_sql": "CREATE INDEX idx_customers_email ON customers (email);",
     "insufficient_context": false,
-    "latency_ms": 1833,
+    "latency_ms": 669,
     "report_source": "deterministic",
     "enrichment_available": true
   },
@@ -28,8 +28,8 @@
       }
     ],
     "insufficient_context": false,
-    "latency_ms": 66368,
-    "generation_latency_ms": 44351,
+    "latency_ms": 56037,
+    "generation_latency_ms": 40180,
     "repair_attempted": false,
     "report_source": "foundry_local"
   }

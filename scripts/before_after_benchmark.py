@@ -13,7 +13,7 @@ import psycopg
 ROOT = Path(__file__).resolve().parents[1]
 RESULTS_PATH = ROOT / "evaluation" / "before_after_benchmark.json"
 DEFAULT_DSN = (
-    "postgresql://querypilot_owner:querypilot_owner_dev@localhost:5432/querypilot"
+    "postgresql://querypilot_owner:querypilot_owner_dev@127.0.0.1:5432/querypilot"
 )
 QUERY = (
     "SELECT id, email, full_name FROM customers "

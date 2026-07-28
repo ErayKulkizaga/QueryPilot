@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import re
+import shutil
 import subprocess
 from dataclasses import dataclass
 from pathlib import Path
@@ -36,9 +37,12 @@ class Finding:
 
 
 def tracked_files() -> list[Path]:
-    completed = subprocess.run(
+    git = shutil.which("git")
+    if git is None:
+        raise SystemExit("git is required for the tracked secret scan.")
+    completed = subprocess.run(  # noqa: S603
         [
-            "git",
+            git,
             "-c",
             f"safe.directory={ROOT.as_posix()}",
             "ls-files",

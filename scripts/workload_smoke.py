@@ -14,7 +14,7 @@ from app.database.workload_reader import WorkloadReader
 ROOT = Path(__file__).resolve().parents[1]
 DEFAULT_OUTPUT = ROOT / "evaluation" / "workload_smoke_result.json"
 DEFAULT_OWNER_DSN = (
-    "postgresql://querypilot_owner:querypilot_owner_dev@localhost:5432/querypilot"
+    "postgresql://querypilot_owner:querypilot_owner_dev@127.0.0.1:5432/querypilot"
 )
 
 SLOW_QUERY = "SELECT count(*) FROM orders WHERE total_amount > 500"

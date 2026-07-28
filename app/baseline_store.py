@@ -2,6 +2,8 @@ from __future__ import annotations
 
 import json
 import sqlite3
+from collections.abc import Iterator
+from contextlib import contextmanager
 from dataclasses import dataclass
 from datetime import UTC, datetime
 from functools import lru_cache
@@ -49,10 +51,19 @@ class SQLiteBaselineStore:
         connection.row_factory = sqlite3.Row
         return connection
 
+    @contextmanager
+    def _connection(self) -> Iterator[sqlite3.Connection]:
+        connection = self._connect()
+        try:
+            with connection:
+                yield connection
+        finally:
+            connection.close()
+
     def _initialize(self) -> None:
         try:
             self._database_path.parent.mkdir(parents=True, exist_ok=True)
-            with self._connect() as connection:
+            with self._connection() as connection:
                 connection.execute(
                     """
                     CREATE TABLE IF NOT EXISTS plan_baselines (
@@ -125,7 +136,7 @@ class SQLiteBaselineStore:
             created_at=datetime.now(UTC),
         )
         try:
-            with self._lock, self._connect() as connection:
+            with self._lock, self._connection() as connection:
                 connection.execute(
                     """
                     INSERT INTO plan_baselines (
@@ -170,7 +181,7 @@ class SQLiteBaselineStore:
 
     def get(self, baseline_id: str) -> PlanBaseline:
         try:
-            with self._connect() as connection:
+            with self._connection() as connection:
                 row = connection.execute(
                     """
                     SELECT baseline_id, name, query_fingerprint, normalized_sql,
@@ -188,7 +199,7 @@ class SQLiteBaselineStore:
 
     def list(self, *, limit: int = 100) -> list[PlanBaseline]:
         try:
-            with self._connect() as connection:
+            with self._connection() as connection:
                 rows = connection.execute(
                     """
                     SELECT baseline_id, name, query_fingerprint, normalized_sql,
@@ -205,7 +216,7 @@ class SQLiteBaselineStore:
 
     def delete(self, baseline_id: str) -> None:
         try:
-            with self._lock, self._connect() as connection:
+            with self._lock, self._connection() as connection:
                 cursor = connection.execute(
                     "DELETE FROM plan_baselines WHERE baseline_id = ?",
                     (baseline_id,),

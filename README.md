@@ -59,8 +59,8 @@ The first working slice includes:
 - persistent local plan baselines and same-query deterministic plan comparison
 - evidence-threshold regression alerts for execution time, root cost, and
   index-backed access changing to a sequential scan
-- a GitHub Actions release gate covering Python tests and lint plus the public
-  demo build and deterministic analyzer tests
+- a GitHub Actions release gate covering dependency audits, Python tests,
+  minimum coverage, security lint, live PostgreSQL checks, and public-demo tests
 
 ## Local setup
 
@@ -74,6 +74,11 @@ Copy-Item .env.example .env
 docker compose up -d
 uvicorn app.main:app --reload
 ```
+
+PostgreSQL is bound to `127.0.0.1` by default, so the development fixture is
+not exposed to other devices on the network. On a shared machine, change both
+PostgreSQL passwords and their matching database URLs in the ignored `.env`
+file before recreating the fixture.
 
 Existing QueryPilot Docker volumes created before workload prioritization do
 not contain the extension or restricted view. Because the local database is a
@@ -92,7 +97,7 @@ port in the application connection string:
 
 ```powershell
 $env:QUERYPILOT_POSTGRES_PORT = "5433"
-$env:QUERYPILOT_DATABASE_URL = "postgresql://querypilot_app:querypilot_app_dev@localhost:5433/querypilot"
+$env:QUERYPILOT_DATABASE_URL = "postgresql://querypilot_app:querypilot_app_dev@127.0.0.1:5433/querypilot"
 docker compose up -d
 ```
 
@@ -264,6 +269,11 @@ Run the default release gate without starting Docker or Foundry Local:
 ```powershell
 python -m scripts.release_check
 ```
+
+The release gate enforces at least 80% Python coverage and runs secret,
+dependency, lint, security-lint, build, and behavior checks. GitHub Actions
+additionally starts a fresh PostgreSQL fixture and verifies workload ranking,
+least-privilege access, and plan-baseline comparison.
 
 Run the complete API smoke test while PostgreSQL is available:
 

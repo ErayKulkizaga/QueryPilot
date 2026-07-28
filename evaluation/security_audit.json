@@ -1,36 +1,57 @@
 {
-  "audited_at_utc": "2026-07-27T08:20:00Z",
+  "audited_at_utc": "2026-07-28T15:59:32Z",
   "tracked_secret_scan": {
     "status": "passed",
-    "tracked_file_count": 108,
+    "tracked_file_count": 131,
     "finding_count": 0,
     "command": "python -m scripts.secret_scan"
   },
-  "python_development_dependencies": {
+  "python_environment_dependencies": {
     "status": "passed",
-    "dependency_count": 67,
+    "dependency_count": 98,
     "known_vulnerability_count": 0,
-    "command": "python -m pip_audit -r requirements-dev.txt",
-    "details": "evaluation/python_audit.json"
+    "command": "python -m pip_audit --local --progress-spinner off"
   },
-  "python_foundry_dependencies": {
+  "public_demo_dependencies": {
     "status": "passed",
-    "dependency_count": 24,
+    "dependency_count": 351,
     "known_vulnerability_count": 0,
-    "command": "python -m pip_audit -r requirements-foundry.txt",
-    "details": "evaluation/python_foundry_audit.json"
+    "command": "npm audit"
   },
-  "public_demo_production_dependencies": {
+  "static_security_lint": {
     "status": "passed",
-    "production_dependency_count": 21,
-    "known_vulnerability_count": 0,
-    "command": "npm audit --omit=dev"
+    "finding_count": 0,
+    "command": "python -m ruff check app scripts streamlit_app.py --select S"
+  },
+  "python_test_coverage": {
+    "status": "passed",
+    "test_count": 64,
+    "coverage_percent": 82.46,
+    "required_percent": 80.0
+  },
+  "live_postgresql_security": {
+    "status": "passed",
+    "loopback_binding": true,
+    "configurable_credentials": true,
+    "direct_pg_stat_statements_access_denied": true,
+    "recommendations_generated_by_workload_or_comparison": false
   },
   "resolved_findings": [
     {
-      "package": "pytest",
-      "previous_constraint": ">=8.3,<9",
-      "resolution": "Constraint raised to >=9.0.3,<10 after PYSEC-2026-1845 was detected."
+      "area": "public demo",
+      "resolution": "Patched React RSC, Vite, Cloudflare, Wrangler, and related build dependencies; removed unused database tooling and replaced the vulnerable lint dependency tree with Biome."
+    },
+    {
+      "area": "local PostgreSQL",
+      "resolution": "Bound the host port to 127.0.0.1 and moved owner/application passwords into configurable environment values."
+    },
+    {
+      "area": "baseline persistence",
+      "resolution": "SQLite connections are explicitly closed after commit or rollback."
+    },
+    {
+      "area": "continuous integration",
+      "resolution": "Dependency audits, an 80% coverage floor, security lint, and fresh PostgreSQL workload/baseline smoke checks are enforced."
     }
   ]
 }

@@ -14,7 +14,7 @@ class Settings(BaseSettings):
 
     environment: str = "development"
     database_url: str = Field(
-        default="postgresql://querypilot_app:querypilot_app_dev@localhost:5432/querypilot"
+        default="postgresql://querypilot_app:querypilot_app_dev@127.0.0.1:5432/querypilot"
     )
     statement_timeout_ms: int = Field(default=3000, ge=100, le=30_000)
     foundry_app_name: str = "querypilot_local"
