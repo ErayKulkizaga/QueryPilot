@@ -4,6 +4,7 @@ from threading import Lock
 from time import monotonic
 from uuid import uuid4
 
+from app.analysis.plan_parser import NormalizedPlan
 from app.analysis.rule_engine import RuleAnalysis
 
 
@@ -14,6 +15,8 @@ class AnalysisNotFoundError(KeyError):
 @dataclass(frozen=True, slots=True)
 class StoredAnalysis:
     analysis: RuleAnalysis
+    normalized_plan: NormalizedPlan
+    normalized_sql: str
     created_at: float
 
 
@@ -44,25 +47,36 @@ class InMemoryAnalysisStore:
             )
             self._items.pop(oldest_id)
 
-    def put(self, analysis: RuleAnalysis) -> str:
+    def put(
+        self,
+        analysis: RuleAnalysis,
+        *,
+        normalized_plan: NormalizedPlan,
+        normalized_sql: str,
+    ) -> str:
         now = monotonic()
         analysis_id = uuid4().hex
         with self._lock:
             self._prune(now)
             self._items[analysis_id] = StoredAnalysis(
                 analysis=analysis,
+                normalized_plan=normalized_plan,
+                normalized_sql=normalized_sql,
                 created_at=now,
             )
         return analysis_id
 
-    def get(self, analysis_id: str) -> RuleAnalysis:
+    def get_snapshot(self, analysis_id: str) -> StoredAnalysis:
         now = monotonic()
         with self._lock:
             item = self._items.get(analysis_id)
             if item is None or now - item.created_at > self._ttl_seconds:
                 self._items.pop(analysis_id, None)
                 raise AnalysisNotFoundError(analysis_id)
-            return item.analysis
+            return item
+
+    def get(self, analysis_id: str) -> RuleAnalysis:
+        return self.get_snapshot(analysis_id).analysis
 
 
 @lru_cache(maxsize=4)

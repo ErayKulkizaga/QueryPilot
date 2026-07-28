@@ -56,6 +56,11 @@ The first working slice includes:
   entirely in the browser
 - a least-privilege `pg_stat_statements` workload view and deterministic
   total-execution-time ranking API
+- persistent local plan baselines and same-query deterministic plan comparison
+- evidence-threshold regression alerts for execution time, root cost, and
+  index-backed access changing to a sequential scan
+- a GitHub Actions release gate covering Python tests and lint plus the public
+  demo build and deterministic analyzer tests
 
 ## Local setup
 
@@ -114,6 +119,38 @@ times and a primary-key lookup fifteen times. The aggregate ranked first by
 total execution time, only two user-workload queries remained after
 infrastructure filtering, and direct `pg_stat_statements` access from the
 application role was denied.
+
+After analyzing a query, store its current plan as a local baseline:
+
+```powershell
+$baselineBody = @{
+  analysis_id = "<analysis-id>"
+  name = "release-1.0 customer email plan"
+} | ConvertTo-Json
+$baseline = Invoke-RestMethod `
+  -Method Post `
+  -Uri http://127.0.0.1:8000/api/v1/baselines `
+  -ContentType application/json `
+  -Body $baselineBody
+```
+
+Run the same normalized SQL again and compare the new analysis with the
+baseline:
+
+```powershell
+$comparisonBody = @{ analysis_id = "<new-analysis-id>" } | ConvertTo-Json
+Invoke-RestMethod `
+  -Method Post `
+  -Uri "http://127.0.0.1:8000/api/v1/baselines/$($baseline.baseline_id)/comparisons" `
+  -ContentType application/json `
+  -Body $comparisonBody
+```
+
+Baselines are stored locally in SQLite under `data/` by default and are not
+committed. Comparison is allowed only when the normalized SQL fingerprint
+matches. Timing regressions must exceed both a ratio and an absolute
+millisecond threshold; plan differences never create a recommendation or
+execute SQL.
 
 Analyze the missing-index demo:
 
@@ -201,6 +238,8 @@ Project delivery references:
 - [`docs/demo-script.md`](docs/demo-script.md) — evidence-first five-minute live walkthrough
 - [`docs/release-checklist.md`](docs/release-checklist.md) — automated and
   manual release gates
+- [`docs/v2-plan-regression.md`](docs/v2-plan-regression.md) — baseline,
+  comparison, and regression evidence contract
 
 Run the default release gate without starting Docker or Foundry Local:
 
@@ -214,6 +253,7 @@ Run the complete API smoke test while PostgreSQL is available:
 docker compose up -d
 python -m scripts.api_smoke
 python -m scripts.workload_smoke
+python -m scripts.baseline_smoke
 docker compose stop
 ```
 

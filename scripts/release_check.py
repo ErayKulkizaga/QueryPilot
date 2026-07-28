@@ -25,6 +25,7 @@ REQUIRED_FILES = (
     ROOT / "evaluation" / "api_scenario_smoke_result.json",
     ROOT / "evaluation" / "before_after_benchmark.json",
     ROOT / "evaluation" / "workload_smoke_result.json",
+    ROOT / "evaluation" / "baseline_smoke_result.json",
     ROOT / "evaluation" / "security_audit.json",
     ROOT / "artifacts" / "QueryPilot_Local_Teknik_Sunum.pptx",
     ROOT / "artifacts" / "QueryPilot_Local_Teknik_Sunum.pdf",

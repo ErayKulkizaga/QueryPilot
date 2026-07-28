@@ -29,6 +29,11 @@ flowchart LR
     W --> T["Deterministic total-time ranking"]
     T --> U
 
+    N --> B["Local SQLite plan baseline"]
+    B --> C["Same-query plan comparison"]
+    N --> C
+    C --> U
+
     D -->|optional user action| E["Enrichment endpoint"]
     E --> K["Local knowledge index"]
     K --> F["Foundry Local sentence selector"]
@@ -72,6 +77,27 @@ The live synthetic smoke result confirmed that the repeated `orders` scan ranked
 above a more frequently called primary-key lookup and that the application role
 could access only the restricted projection.
 
+### Plan baseline and regression comparison
+
+An analyzed plan can be saved to a local SQLite baseline store. The stored
+record contains the normalized SQL fingerprint and a compact plan snapshot:
+execution and planning time, root cost, and node identity and metrics.
+
+A comparison is accepted only for the same normalized SQL fingerprint. The
+deterministic comparator reports:
+
+- execution-time absolute and percentage change;
+- root-cost absolute and percentage change;
+- node-count and structural changes;
+- index name changes; and
+- index-backed access degrading to a sequential scan.
+
+Timing alerts require both a configurable ratio and an absolute millisecond
+increase, which prevents very small fixture noise from becoming a regression
+claim. Cost and access-path thresholds are independent evidence. The
+comparison returns `recommendations_generated=false`; it never executes a
+captured query or applies a change.
+
 ### Optional enrichment path
 
 `POST /api/v1/analyses/{analysis_id}/enrichment` is intentionally outside the
@@ -113,6 +139,8 @@ ignored.
 | Submitted SQL | AST validation plus one-statement, read-only policy |
 | PostgreSQL | `SELECT`-only role, read-only transaction, statement timeout |
 | Workload statistics | Security-definer projection, SELECT/WITH filter, deterministic total-time ranking |
+| Plan baseline | Local SQLite record keyed by normalized-SQL fingerprint |
+| Regression alert | Deterministic timing, cost, and access-path evidence; no recommendation |
 | Recommendation | Display-only SQL; never applied automatically |
 | Plan evidence | Derived from normalized plan nodes, never from the model |
 | Retrieval | Local index and known document IDs |

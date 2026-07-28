@@ -206,6 +206,33 @@ def _render_analysis_workspace() -> None:
     with st.expander("Ham PostgreSQL planını göster"):
         st.json(analysis["raw_plan"])
 
+    st.divider()
+    st.subheader("Plan baseline")
+    st.caption(
+        "Baseline yalnızca bu analizde üretilmiş planı yerel olarak saklar. "
+        "Sorguyu yeniden çalıştırmaz ve optimizasyon önerisi üretmez."
+    )
+    baseline_name = st.text_input(
+        "Baseline adı",
+        value="",
+        placeholder="Örn. release-1.0 müşteri e-posta planı",
+    )
+    if st.button("Mevcut planı baseline olarak kaydet", width="stretch"):
+        try:
+            created = _post(
+                "/api/v1/baselines",
+                {
+                    "analysis_id": analysis["analysis_id"],
+                    "name": baseline_name,
+                },
+                timeout=10,
+            )
+            st.session_state["created_baseline"] = created
+            st.session_state.pop("baselines", None)
+            st.success(f'Baseline kaydedildi: {created["name"]}')
+        except RuntimeError as exc:
+            st.error(str(exc))
+
 
 def _render_workload_workspace() -> None:
     st.subheader("İş yükü öncelikleri")
@@ -291,6 +318,122 @@ def _render_workload_workspace() -> None:
         )
 
 
+def _render_baseline_workspace() -> None:
+    st.subheader("Plan karşılaştırma")
+    st.write(
+        "Aynı normalize SQL için kaydedilmiş baseline ile en son planı "
+        "deterministik olarak karşılaştırır. Fark tek başına optimizasyon "
+        "önerisi üretmez."
+    )
+
+    if st.button("Baseline listesini yenile", type="primary", width="stretch"):
+        try:
+            st.session_state["baselines"] = _get(
+                "/api/v1/baselines?limit=50",
+                timeout=10,
+            )
+        except RuntimeError as exc:
+            st.session_state.pop("baselines", None)
+            st.error(str(exc))
+
+    baseline_payload = st.session_state.get("baselines")
+    if baseline_payload is None:
+        try:
+            baseline_payload = _get("/api/v1/baselines?limit=50", timeout=10)
+            st.session_state["baselines"] = baseline_payload
+        except RuntimeError:
+            st.info(
+                "Baseline listesi henüz yüklenmedi. Yerel API çalışırken "
+                "listeyi yenileyin."
+            )
+            return
+
+    baselines = baseline_payload["baselines"]
+    if not baselines:
+        st.info(
+            "Henüz plan baseline'ı yok. Önce Plan analizi sekmesinde bir "
+            "analizi baseline olarak kaydedin."
+        )
+        return
+
+    selected_id = st.selectbox(
+        "Baseline",
+        [baseline["baseline_id"] for baseline in baselines],
+        format_func=lambda baseline_id: next(
+            baseline["name"]
+            for baseline in baselines
+            if baseline["baseline_id"] == baseline_id
+        ),
+    )
+    selected = next(
+        baseline
+        for baseline in baselines
+        if baseline["baseline_id"] == selected_id
+    )
+    st.code(selected["normalized_sql"], language="sql")
+    baseline_time, baseline_cost, baseline_nodes = st.columns(3)
+    baseline_time.metric(
+        "Baseline süre",
+        f'{selected["execution_time_ms"]:.3f} ms',
+    )
+    baseline_cost.metric("Baseline maliyet", f'{selected["root_total_cost"]:.3f}')
+    baseline_nodes.metric("Baseline düğüm", selected["node_count"])
+
+    analysis = st.session_state.get("analysis")
+    if not analysis:
+        st.warning(
+            "Karşılaştırma için Plan analizi sekmesinde aynı SQL'i yeniden "
+            "analiz edin."
+        )
+        return
+
+    if st.button("Son analizle karşılaştır", width="stretch"):
+        try:
+            st.session_state["comparison"] = _post(
+                f"/api/v1/baselines/{selected_id}/comparisons",
+                {"analysis_id": analysis["analysis_id"]},
+                timeout=10,
+            )
+        except RuntimeError as exc:
+            st.session_state.pop("comparison", None)
+            st.error(str(exc))
+
+    comparison = st.session_state.get("comparison")
+    if not comparison or comparison["baseline_id"] != selected_id:
+        return
+
+    st.divider()
+    current_time, time_delta, cost_delta, node_delta = st.columns(4)
+    current_time.metric(
+        "Güncel süre",
+        f'{comparison["current_execution_time_ms"]:.3f} ms',
+    )
+    time_delta.metric(
+        "Süre farkı",
+        f'{comparison["execution_time_delta_ms"]:+.3f} ms',
+    )
+    cost_delta.metric(
+        "Maliyet farkı",
+        f'{comparison["root_cost_delta"]:+.3f}',
+    )
+    node_delta.metric("Düğüm farkı", f'{comparison["node_count_delta"]:+d}')
+
+    if comparison["regression_detected"]:
+        st.error("Kanıt eşiğini aşan plan regresyonu tespit edildi.")
+        for reason in comparison["regression_reasons"]:
+            st.markdown(f"- {reason}")
+    else:
+        st.success("Tanımlı eşiklere göre plan regresyonu bulunmadı.")
+
+    if comparison["node_changes"]:
+        st.subheader("Plan yapısı farkları")
+        st.dataframe(comparison["node_changes"], hide_index=True, width="stretch")
+    st.caption(
+        "Bu karşılaştırma öneri üretmez. Sonuçlar aynı sorgu ve temsilî iş "
+        "yükü altında insan incelemesiyle değerlendirilmelidir."
+    )
+
+
 st.set_page_config(
     page_title="QueryPilot Local",
     page_icon="🧭",
@@ -303,8 +446,8 @@ st.caption(
     "sorunlar için öneri verir."
 )
 
-analysis_tab, workload_tab = st.tabs(
-    ("Plan analizi", "İş yükü öncelikleri")
+analysis_tab, workload_tab, baseline_tab = st.tabs(
+    ("Plan analizi", "İş yükü öncelikleri", "Plan karşılaştırma")
 )
 
 with analysis_tab:
@@ -312,3 +455,6 @@ with analysis_tab:
 
 with workload_tab:
     _render_workload_workspace()
+
+with baseline_tab:
+    _render_baseline_workspace()

@@ -1,0 +1,13 @@
+{
+  "captured_at": "2026-07-28T12:35:23.865885+00:00",
+  "baseline_id": "745a040d38a049a48fb5f64a169f6b11",
+  "query_fingerprint": "879074f621aecd87a02578c85db2af16619d24e34ebf98ac9e9f0a110f752f82",
+  "baseline_execution_time_ms": 23.139,
+  "current_execution_time_ms": 2.0,
+  "execution_time_delta_ms": -21.139,
+  "root_cost_delta": 0.0,
+  "node_count_delta": 0,
+  "regression_detected": false,
+  "regression_reasons": [],
+  "recommendations_generated": false
+}
