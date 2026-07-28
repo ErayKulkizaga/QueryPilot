@@ -31,12 +31,16 @@ class PlanBaseline:
     query_fingerprint: str
     normalized_sql: str
     plan: PlanSnapshot
+    sample_count: int
     created_at: datetime
 
 
 class SQLiteBaselineStore:
-    def __init__(self, database_path: Path) -> None:
+    def __init__(self, database_path: Path, *, max_items: int = 100) -> None:
+        if max_items < 1:
+            raise ValueError("max_items must be at least 1.")
         self._database_path = database_path
+        self._max_items = max_items
         self._lock = Lock()
         self._initialize()
 
@@ -57,10 +61,24 @@ class SQLiteBaselineStore:
                         query_fingerprint TEXT NOT NULL,
                         normalized_sql TEXT NOT NULL,
                         plan_json TEXT NOT NULL,
+                        sample_count INTEGER NOT NULL DEFAULT 1,
                         created_at TEXT NOT NULL
                     )
                     """
                 )
+                columns = {
+                    row["name"]
+                    for row in connection.execute(
+                        "PRAGMA table_info(plan_baselines)"
+                    ).fetchall()
+                }
+                if "sample_count" not in columns:
+                    connection.execute(
+                        """
+                        ALTER TABLE plan_baselines
+                        ADD COLUMN sample_count INTEGER NOT NULL DEFAULT 1
+                        """
+                    )
                 connection.execute(
                     """
                     CREATE INDEX IF NOT EXISTS idx_plan_baselines_created_at
@@ -84,6 +102,7 @@ class SQLiteBaselineStore:
             query_fingerprint=row["query_fingerprint"],
             normalized_sql=row["normalized_sql"],
             plan=plan,
+            sample_count=int(row["sample_count"]),
             created_at=created_at,
         )
 
@@ -94,6 +113,7 @@ class SQLiteBaselineStore:
         query_fingerprint: str,
         normalized_sql: str,
         plan: PlanSnapshot,
+        sample_count: int,
     ) -> PlanBaseline:
         record = PlanBaseline(
             baseline_id=uuid4().hex,
@@ -101,6 +121,7 @@ class SQLiteBaselineStore:
             query_fingerprint=query_fingerprint,
             normalized_sql=normalized_sql,
             plan=plan,
+            sample_count=sample_count,
             created_at=datetime.now(UTC),
         )
         try:
@@ -113,8 +134,9 @@ class SQLiteBaselineStore:
                         query_fingerprint,
                         normalized_sql,
                         plan_json,
+                        sample_count,
                         created_at
-                    ) VALUES (?, ?, ?, ?, ?, ?)
+                    ) VALUES (?, ?, ?, ?, ?, ?, ?)
                     """,
                     (
                         record.baseline_id,
@@ -126,8 +148,21 @@ class SQLiteBaselineStore:
                             separators=(",", ":"),
                             sort_keys=True,
                         ),
+                        record.sample_count,
                         record.created_at.isoformat(),
                     ),
+                )
+                connection.execute(
+                    """
+                    DELETE FROM plan_baselines
+                    WHERE baseline_id IN (
+                        SELECT baseline_id
+                        FROM plan_baselines
+                        ORDER BY created_at DESC, baseline_id ASC
+                        LIMIT -1 OFFSET ?
+                    )
+                    """,
+                    (self._max_items,),
                 )
         except sqlite3.Error as exc:
             raise BaselineStoreError("Could not save the plan baseline.") from exc
@@ -139,7 +174,7 @@ class SQLiteBaselineStore:
                 row = connection.execute(
                     """
                     SELECT baseline_id, name, query_fingerprint, normalized_sql,
-                           plan_json, created_at
+                           plan_json, sample_count, created_at
                     FROM plan_baselines
                     WHERE baseline_id = ?
                     """,
@@ -157,7 +192,7 @@ class SQLiteBaselineStore:
                 rows = connection.execute(
                     """
                     SELECT baseline_id, name, query_fingerprint, normalized_sql,
-                           plan_json, created_at
+                           plan_json, sample_count, created_at
                     FROM plan_baselines
                     ORDER BY created_at DESC, baseline_id ASC
                     LIMIT ?
@@ -168,7 +203,22 @@ class SQLiteBaselineStore:
             raise BaselineStoreError("Could not list plan baselines.") from exc
         return [self._from_row(row) for row in rows]
 
+    def delete(self, baseline_id: str) -> None:
+        try:
+            with self._lock, self._connect() as connection:
+                cursor = connection.execute(
+                    "DELETE FROM plan_baselines WHERE baseline_id = ?",
+                    (baseline_id,),
+                )
+        except sqlite3.Error as exc:
+            raise BaselineStoreError("Could not delete the plan baseline.") from exc
+        if cursor.rowcount == 0:
+            raise BaselineNotFoundError(baseline_id)
+
 
 @lru_cache(maxsize=8)
-def get_baseline_store(database_path: Path) -> SQLiteBaselineStore:
-    return SQLiteBaselineStore(database_path)
+def get_baseline_store(
+    database_path: Path,
+    max_items: int,
+) -> SQLiteBaselineStore:
+    return SQLiteBaselineStore(database_path, max_items=max_items)

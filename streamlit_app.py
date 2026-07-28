@@ -1,3 +1,4 @@
+import json
 import os
 from typing import Any
 
@@ -84,6 +85,22 @@ def _get(path: str, timeout: float) -> dict[str, Any]:
         ) from exc
 
 
+def _delete(path: str, timeout: float) -> None:
+    try:
+        response = httpx.delete(f"{API_BASE_URL}{path}", timeout=timeout)
+        response.raise_for_status()
+    except httpx.HTTPStatusError as exc:
+        try:
+            detail = exc.response.json().get("detail", exc.response.text)
+        except ValueError:
+            detail = exc.response.text
+        raise RuntimeError(str(detail)) from exc
+    except httpx.RequestError as exc:
+        raise RuntimeError(
+            "QueryPilot servisine ulaşılamadı. Yerel API çalışıyor mu?"
+        ) from exc
+
+
 def _render_report(report: dict[str, Any], *, enriched: bool) -> None:
     source = report["report_source"]
     if enriched and source == "foundry_local":
@@ -162,11 +179,19 @@ def _render_analysis_workspace() -> None:
         st.session_state.pop("enrichment", None)
         with st.spinner("PostgreSQL planı ve kural kanıtları inceleniyor…"):
             try:
-                st.session_state["analysis"] = _post(
+                analysis = _post(
                     "/api/v1/analyses",
                     request_payload,
                     timeout=10,
                 )
+                request_key = json.dumps(request_payload, sort_keys=True)
+                if st.session_state.get("analysis_history_key") != request_key:
+                    st.session_state["analysis_history_key"] = request_key
+                    st.session_state["analysis_history"] = []
+                history = st.session_state.setdefault("analysis_history", [])
+                history.append(analysis["analysis_id"])
+                st.session_state["analysis_history"] = history[-9:]
+                st.session_state["analysis"] = analysis
             except RuntimeError as exc:
                 st.session_state.pop("analysis", None)
                 st.error(str(exc))
@@ -209,9 +234,12 @@ def _render_analysis_workspace() -> None:
     st.divider()
     st.subheader("Plan baseline")
     st.caption(
-        "Baseline yalnızca bu analizde üretilmiş planı yerel olarak saklar. "
-        "Sorguyu yeniden çalıştırmaz ve optimizasyon önerisi üretmez."
+        "Her Planı analiz et tıklaması bir ölçüm örneği ekler. Baseline, aynı "
+        "SQL için son dokuz örneğin medyanını yerel olarak saklar; sorguyu "
+        "kendi başına yeniden çalıştırmaz ve optimizasyon önerisi üretmez."
     )
+    history = st.session_state.get("analysis_history", [analysis["analysis_id"]])
+    st.info(f"Bu sorgu için toplanan ölçüm örneği: {len(history)}")
     baseline_name = st.text_input(
         "Baseline adı",
         value="",
@@ -222,7 +250,7 @@ def _render_analysis_workspace() -> None:
             created = _post(
                 "/api/v1/baselines",
                 {
-                    "analysis_id": analysis["analysis_id"],
+                    "analysis_ids": history,
                     "name": baseline_name,
                 },
                 timeout=10,
@@ -378,6 +406,25 @@ def _render_baseline_workspace() -> None:
     )
     baseline_cost.metric("Baseline maliyet", f'{selected["root_total_cost"]:.3f}')
     baseline_nodes.metric("Baseline düğüm", selected["node_count"])
+    st.caption(f'Baseline örnek sayısı: {selected["sample_count"]}')
+
+    delete_confirmed = st.checkbox(
+        "Seçili baseline'ı kalıcı olarak silmek istediğimi onaylıyorum.",
+        key=f"delete-confirm-{selected_id}",
+    )
+    if st.button(
+        "Seçili baseline'ı sil",
+        disabled=not delete_confirmed,
+        width="stretch",
+    ):
+        try:
+            _delete(f"/api/v1/baselines/{selected_id}", timeout=10)
+            st.session_state.pop("baselines", None)
+            st.session_state.pop("comparison", None)
+            st.success("Baseline silindi. Listeyi yenileyebilirsiniz.")
+            return
+        except RuntimeError as exc:
+            st.error(str(exc))
 
     analysis = st.session_state.get("analysis")
     if not analysis:
@@ -389,9 +436,13 @@ def _render_baseline_workspace() -> None:
 
     if st.button("Son analizle karşılaştır", width="stretch"):
         try:
+            current_history = st.session_state.get(
+                "analysis_history",
+                [analysis["analysis_id"]],
+            )
             st.session_state["comparison"] = _post(
                 f"/api/v1/baselines/{selected_id}/comparisons",
-                {"analysis_id": analysis["analysis_id"]},
+                {"analysis_ids": current_history},
                 timeout=10,
             )
         except RuntimeError as exc:
@@ -417,6 +468,10 @@ def _render_baseline_workspace() -> None:
         f'{comparison["root_cost_delta"]:+.3f}',
     )
     node_delta.metric("Düğüm farkı", f'{comparison["node_count_delta"]:+d}')
+    st.caption(
+        f'Medyan örnekleri: baseline {comparison["baseline_sample_count"]}, '
+        f'güncel {comparison["current_sample_count"]}.'
+    )
 
     if comparison["regression_detected"]:
         st.error("Kanıt eşiğini aşan plan regresyonu tespit edildi.")

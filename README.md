@@ -124,7 +124,7 @@ After analyzing a query, store its current plan as a local baseline:
 
 ```powershell
 $baselineBody = @{
-  analysis_id = "<analysis-id>"
+  analysis_ids = @("<analysis-id-1>", "<analysis-id-2>", "<analysis-id-3>")
   name = "release-1.0 customer email plan"
 } | ConvertTo-Json
 $baseline = Invoke-RestMethod `
@@ -138,7 +138,13 @@ Run the same normalized SQL again and compare the new analysis with the
 baseline:
 
 ```powershell
-$comparisonBody = @{ analysis_id = "<new-analysis-id>" } | ConvertTo-Json
+$comparisonBody = @{
+  analysis_ids = @(
+    "<new-analysis-id-1>",
+    "<new-analysis-id-2>",
+    "<new-analysis-id-3>"
+  )
+} | ConvertTo-Json
 Invoke-RestMethod `
   -Method Post `
   -Uri "http://127.0.0.1:8000/api/v1/baselines/$($baseline.baseline_id)/comparisons" `
@@ -148,9 +154,21 @@ Invoke-RestMethod `
 
 Baselines are stored locally in SQLite under `data/` by default and are not
 committed. Comparison is allowed only when the normalized SQL fingerprint
-matches. Timing regressions must exceed both a ratio and an absolute
-millisecond threshold; plan differences never create a recommendation or
-execute SQL.
+matches. Up to nine structurally identical plan samples can be aggregated; the
+median timing and node metrics are used so one noisy run cannot dominate the
+result. Timing regressions must exceed both a ratio and an absolute millisecond
+threshold; plan differences never create a recommendation or execute SQL.
+
+Delete a reviewed baseline explicitly:
+
+```powershell
+Invoke-RestMethod `
+  -Method Delete `
+  -Uri "http://127.0.0.1:8000/api/v1/baselines/$($baseline.baseline_id)"
+```
+
+The store retains the newest 100 baselines by default. Change this local limit
+with `QUERYPILOT_BASELINE_MAX_ITEMS`.
 
 Analyze the missing-index demo:
 

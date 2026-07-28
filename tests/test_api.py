@@ -155,19 +155,30 @@ def test_baseline_create_list_and_compare_are_evidence_only(
     monkeypatch.setattr("app.api.analyses.ExplainRunner", MutableExplainRunner)
 
     try:
-        baseline_analysis = client.post(
-            "/api/v1/analyses",
-            json={"sql": "SELECT * FROM customers WHERE email = 'demo@example.com'"},
-        ).json()
+        baseline_analyses = [
+            client.post(
+                "/api/v1/analyses",
+                json={
+                    "sql": (
+                        "SELECT * FROM customers "
+                        "WHERE email = 'demo@example.com'"
+                    )
+                },
+            ).json()
+            for _ in range(3)
+        ]
         baseline_response = client.post(
             "/api/v1/baselines",
             json={
-                "analysis_id": baseline_analysis["analysis_id"],
+                "analysis_ids": [
+                    analysis["analysis_id"] for analysis in baseline_analyses
+                ],
                 "name": "customer email baseline",
             },
         )
         assert baseline_response.status_code == 201
         baseline = baseline_response.json()
+        assert baseline["sample_count"] == 3
 
         listed = client.get("/api/v1/baselines").json()["baselines"]
         assert [item["baseline_id"] for item in listed] == [baseline["baseline_id"]]
@@ -180,14 +191,30 @@ def test_baseline_create_list_and_compare_are_evidence_only(
                 "total_cost": 15.0,
             }
         )
-        current_analysis = client.post(
-            "/api/v1/analyses",
-            json={"sql": "SELECT * FROM customers WHERE email = 'demo@example.com'"},
-        ).json()
+        current_analyses = [
+            client.post(
+                "/api/v1/analyses",
+                json={
+                    "sql": (
+                        "SELECT * FROM customers "
+                        "WHERE email = 'demo@example.com'"
+                    )
+                },
+            ).json()
+            for _ in range(2)
+        ]
         comparison_response = client.post(
             f"/api/v1/baselines/{baseline['baseline_id']}/comparisons",
-            json={"analysis_id": current_analysis["analysis_id"]},
+            json={
+                "analysis_ids": [
+                    analysis["analysis_id"] for analysis in current_analyses
+                ]
+            },
         )
+        delete_response = client.delete(
+            f"/api/v1/baselines/{baseline['baseline_id']}"
+        )
+        remaining_baselines = client.get("/api/v1/baselines").json()["baselines"]
     finally:
         app.dependency_overrides.pop(get_settings, None)
 
@@ -196,10 +223,15 @@ def test_baseline_create_list_and_compare_are_evidence_only(
     assert comparison["regression_detected"] is True
     assert comparison["recommendations_generated"] is False
     assert comparison["execution_time_change_percent"] == 100.0
+    assert comparison["baseline_sample_count"] == 3
+    assert comparison["current_sample_count"] == 2
     assert any(
         "sequential scan" in reason
         for reason in comparison["regression_reasons"]
     )
+
+    assert delete_response.status_code == 204
+    assert remaining_baselines == []
 
 
 def test_baseline_comparison_rejects_different_query(
@@ -239,7 +271,7 @@ def test_baseline_comparison_rejects_different_query(
         ).json()
         baseline = client.post(
             "/api/v1/baselines",
-            json={"analysis_id": first["analysis_id"], "name": "id lookup"},
+            json={"analysis_ids": [first["analysis_id"]], "name": "id lookup"},
         ).json()
         second = client.post(
             "/api/v1/analyses",
@@ -247,7 +279,7 @@ def test_baseline_comparison_rejects_different_query(
         ).json()
         response = client.post(
             f"/api/v1/baselines/{baseline['baseline_id']}/comparisons",
-            json={"analysis_id": second["analysis_id"]},
+            json={"analysis_ids": [second["analysis_id"]]},
         )
     finally:
         app.dependency_overrides.pop(get_settings, None)

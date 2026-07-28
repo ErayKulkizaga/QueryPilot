@@ -101,8 +101,17 @@ class WorkloadQueryListResponse(StrictModel):
 
 
 class BaselineCreateRequest(StrictModel):
-    analysis_id: str = Field(min_length=32, max_length=32)
+    analysis_ids: list[str] = Field(min_length=1, max_length=9)
     name: str = Field(min_length=1, max_length=100)
+
+    @field_validator("analysis_ids")
+    @classmethod
+    def validate_analysis_ids(cls, value: list[str]) -> list[str]:
+        if any(len(analysis_id) != 32 for analysis_id in value):
+            raise ValueError("Every analysis ID must be 32 characters.")
+        if len(set(value)) != len(value):
+            raise ValueError("Analysis IDs must be unique.")
+        return value
 
     @field_validator("name")
     @classmethod
@@ -122,6 +131,7 @@ class PlanBaselineResponse(StrictModel):
     execution_time_ms: float = Field(ge=0)
     root_total_cost: float = Field(ge=0)
     node_count: int = Field(ge=1)
+    sample_count: int = Field(ge=1, le=9)
 
 
 class PlanBaselineListResponse(StrictModel):
@@ -129,7 +139,16 @@ class PlanBaselineListResponse(StrictModel):
 
 
 class BaselineComparisonRequest(StrictModel):
-    analysis_id: str = Field(min_length=32, max_length=32)
+    analysis_ids: list[str] = Field(min_length=1, max_length=9)
+
+    @field_validator("analysis_ids")
+    @classmethod
+    def validate_analysis_ids(cls, value: list[str]) -> list[str]:
+        if any(len(analysis_id) != 32 for analysis_id in value):
+            raise ValueError("Every analysis ID must be 32 characters.")
+        if len(set(value)) != len(value):
+            raise ValueError("Analysis IDs must be unique.")
+        return value
 
 
 class PlanNodeChangeResponse(StrictModel):
@@ -148,8 +167,10 @@ class PlanNodeChangeResponse(StrictModel):
 
 class PlanComparisonResponse(StrictModel):
     baseline_id: str
-    current_analysis_id: str
+    current_analysis_ids: list[str]
     query_fingerprint: str
+    baseline_sample_count: int = Field(ge=1, le=9)
+    current_sample_count: int = Field(ge=1, le=9)
     baseline_execution_time_ms: float = Field(ge=0)
     current_execution_time_ms: float = Field(ge=0)
     execution_time_delta_ms: float

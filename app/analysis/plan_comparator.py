@@ -2,12 +2,17 @@ from __future__ import annotations
 
 from dataclasses import asdict, dataclass
 from hashlib import sha256
+from statistics import median
 from typing import Any, Literal
 
 from app.analysis.plan_parser import NormalizedPlan
 
 NodeChangeType = Literal["added", "removed", "node_type_changed", "index_changed"]
 INDEX_ACCESS_TYPES = {"Index Scan", "Index Only Scan", "Bitmap Heap Scan"}
+
+
+class PlanAggregationError(ValueError):
+    """Raised when plan samples cannot form one stable aggregate."""
 
 
 @dataclass(frozen=True, slots=True)
@@ -76,6 +81,56 @@ def snapshot_plan(plan: NormalizedPlan) -> PlanSnapshot:
             )
             for node in plan.nodes
         ),
+    )
+
+
+def aggregate_plan_snapshots(
+    snapshots: list[PlanSnapshot] | tuple[PlanSnapshot, ...],
+) -> PlanSnapshot:
+    if not snapshots:
+        raise PlanAggregationError("At least one plan sample is required.")
+
+    expected_signature = tuple(
+        (node.path, node.node_type, node.relation_name, node.index_name)
+        for node in snapshots[0].nodes
+    )
+    for snapshot in snapshots[1:]:
+        signature = tuple(
+            (node.path, node.node_type, node.relation_name, node.index_name)
+            for node in snapshot.nodes
+        )
+        if signature != expected_signature:
+            raise PlanAggregationError(
+                "Plan samples have different structures and cannot share one baseline."
+            )
+
+    aggregated_nodes = []
+    for node_index, identity in enumerate(expected_signature):
+        path, node_type, relation_name, index_name = identity
+        samples = [snapshot.nodes[node_index] for snapshot in snapshots]
+        aggregated_nodes.append(
+            PlanNodeSnapshot(
+                path=path,
+                node_type=node_type,
+                relation_name=relation_name,
+                index_name=index_name,
+                total_cost=float(median(node.total_cost for node in samples)),
+                actual_total_time_ms=float(
+                    median(node.actual_total_time_ms for node in samples)
+                ),
+                actual_rows=float(median(node.actual_rows for node in samples)),
+                actual_loops=float(median(node.actual_loops for node in samples)),
+            )
+        )
+
+    return PlanSnapshot(
+        planning_time_ms=float(
+            median(snapshot.planning_time_ms for snapshot in snapshots)
+        ),
+        execution_time_ms=float(
+            median(snapshot.execution_time_ms for snapshot in snapshots)
+        ),
+        nodes=tuple(aggregated_nodes),
     )
 
 

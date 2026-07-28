@@ -34,6 +34,7 @@ def test_sqlite_store_persists_and_lists_baselines(tmp_path) -> None:
         query_fingerprint="a" * 64,
         normalized_sql="SELECT * FROM customers",
         plan=_snapshot(),
+        sample_count=3,
     )
     reopened = SQLiteBaselineStore(database_path)
 
@@ -42,6 +43,7 @@ def test_sqlite_store_persists_and_lists_baselines(tmp_path) -> None:
 
     assert loaded == created
     assert listed == [created]
+    assert loaded.sample_count == 3
 
 
 def test_sqlite_store_rejects_unknown_baseline(tmp_path) -> None:
@@ -53,3 +55,33 @@ def test_sqlite_store_rejects_unknown_baseline(tmp_path) -> None:
         pass
     else:
         raise AssertionError("Unknown baseline ID should be rejected.")
+
+
+def test_sqlite_store_applies_retention_and_supports_delete(tmp_path) -> None:
+    store = SQLiteBaselineStore(
+        tmp_path / "baselines.sqlite3",
+        max_items=2,
+    )
+    created = [
+        store.create(
+            name=f"baseline-{index}",
+            query_fingerprint=str(index) * 64,
+            normalized_sql=f"SELECT {index}",
+            plan=_snapshot(),
+            sample_count=1,
+        )
+        for index in range(3)
+    ]
+
+    retained = store.list()
+
+    assert len(retained) == 2
+    assert created[0].baseline_id not in {
+        baseline.baseline_id for baseline in retained
+    }
+
+    store.delete(created[2].baseline_id)
+
+    assert [baseline.baseline_id for baseline in store.list()] == [
+        created[1].baseline_id
+    ]

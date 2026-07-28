@@ -79,9 +79,10 @@ could access only the restricted projection.
 
 ### Plan baseline and regression comparison
 
-An analyzed plan can be saved to a local SQLite baseline store. The stored
-record contains the normalized SQL fingerprint and a compact plan snapshot:
-execution and planning time, root cost, and node identity and metrics.
+One to nine analyzed plans can be saved to a local SQLite baseline store. All
+samples must have the same normalized SQL fingerprint and plan structure. The
+stored record contains median execution and planning time, median node metrics,
+root cost, sample count, and node identity.
 
 A comparison is accepted only for the same normalized SQL fingerprint. The
 deterministic comparator reports:
@@ -97,6 +98,11 @@ increase, which prevents very small fixture noise from becoming a regression
 claim. Cost and access-path thresholds are independent evidence. The
 comparison returns `recommendations_generated=false`; it never executes a
 captured query or applies a change.
+
+If PostgreSQL selects different plan structures across samples, aggregation is
+rejected instead of hiding the instability inside an average. The local store
+keeps a configurable maximum number of recent baselines and supports explicit
+deletion.
 
 ### Optional enrichment path
 

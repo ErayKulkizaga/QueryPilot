@@ -1,4 +1,6 @@
 from app.analysis.plan_comparator import (
+    PlanAggregationError,
+    aggregate_plan_snapshots,
     compare_plan_snapshots,
     snapshot_from_dict,
     snapshot_plan,
@@ -100,3 +102,47 @@ def test_comparison_ignores_small_timing_noise() -> None:
 
     assert comparison.regression_detected is False
     assert comparison.regression_reasons == ()
+
+
+def test_aggregate_uses_median_metrics() -> None:
+    snapshots = [
+        snapshot_plan(
+            _plan(
+                node_type="Seq Scan",
+                execution_time_ms=value,
+                total_cost=20.0,
+            )
+        )
+        for value in (2.0, 100.0, 4.0)
+    ]
+
+    aggregate = aggregate_plan_snapshots(snapshots)
+
+    assert aggregate.execution_time_ms == 4.0
+    assert aggregate.nodes[0].actual_total_time_ms == 4.0
+    assert aggregate.root_total_cost == 20.0
+
+
+def test_aggregate_rejects_different_plan_structures() -> None:
+    index_plan = snapshot_plan(
+        _plan(
+            node_type="Index Scan",
+            execution_time_ms=2.0,
+            total_cost=10.0,
+            index_name="customers_pkey",
+        )
+    )
+    sequential_plan = snapshot_plan(
+        _plan(
+            node_type="Seq Scan",
+            execution_time_ms=3.0,
+            total_cost=20.0,
+        )
+    )
+
+    try:
+        aggregate_plan_snapshots([index_plan, sequential_plan])
+    except PlanAggregationError:
+        pass
+    else:
+        raise AssertionError("Structurally different plans should be rejected.")

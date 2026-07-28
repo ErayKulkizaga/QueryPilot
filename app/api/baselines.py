@@ -4,11 +4,18 @@ from typing import Annotated
 from fastapi import APIRouter, Depends, HTTPException, Query, status
 
 from app.analysis.plan_comparator import (
+    PlanAggregationError,
+    PlanSnapshot,
+    aggregate_plan_snapshots,
     compare_plan_snapshots,
     query_fingerprint,
     snapshot_plan,
 )
-from app.analysis_store import AnalysisNotFoundError, get_analysis_store
+from app.analysis_store import (
+    AnalysisNotFoundError,
+    StoredAnalysis,
+    get_analysis_store,
+)
 from app.baseline_store import (
     BaselineNotFoundError,
     BaselineStoreError,
@@ -38,7 +45,45 @@ def _baseline_response(baseline: PlanBaseline) -> PlanBaselineResponse:
         execution_time_ms=baseline.plan.execution_time_ms,
         root_total_cost=baseline.plan.root_total_cost,
         node_count=len(baseline.plan.nodes),
+        sample_count=baseline.sample_count,
     )
+
+
+def _get_analysis_samples(
+    analysis_ids: list[str],
+    settings: Settings,
+) -> tuple[str, str, PlanSnapshot]:
+    store = get_analysis_store(settings.analysis_ttl_seconds)
+    try:
+        samples: list[StoredAnalysis] = [
+            store.get_snapshot(analysis_id) for analysis_id in analysis_ids
+        ]
+    except AnalysisNotFoundError as exc:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="One or more analysis IDs were not found or have expired.",
+        ) from exc
+
+    normalized_sql = samples[0].normalized_sql
+    fingerprint = query_fingerprint(normalized_sql)
+    if any(
+        query_fingerprint(sample.normalized_sql) != fingerprint
+        for sample in samples[1:]
+    ):
+        raise HTTPException(
+            status_code=status.HTTP_409_CONFLICT,
+            detail="All plan samples must use the same normalized SQL.",
+        )
+    try:
+        plan = aggregate_plan_snapshots(
+            [snapshot_plan(sample.normalized_plan) for sample in samples]
+        )
+    except PlanAggregationError as exc:
+        raise HTTPException(
+            status_code=status.HTTP_409_CONFLICT,
+            detail=str(exc),
+        ) from exc
+    return normalized_sql, fingerprint, plan
 
 
 @router.post(
@@ -50,22 +95,21 @@ def create_baseline(
     request: BaselineCreateRequest,
     settings: Annotated[Settings, Depends(get_settings)],
 ) -> PlanBaselineResponse:
-    try:
-        analysis = get_analysis_store(settings.analysis_ttl_seconds).get_snapshot(
-            request.analysis_id
-        )
-    except AnalysisNotFoundError as exc:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail="Analysis ID was not found or has expired.",
-        ) from exc
+    normalized_sql, fingerprint, plan = _get_analysis_samples(
+        request.analysis_ids,
+        settings,
+    )
 
     try:
-        baseline = get_baseline_store(settings.baseline_database_path).create(
-            name=request.name.strip(),
-            query_fingerprint=query_fingerprint(analysis.normalized_sql),
-            normalized_sql=analysis.normalized_sql,
-            plan=snapshot_plan(analysis.normalized_plan),
+        baseline = get_baseline_store(
+            settings.baseline_database_path,
+            settings.baseline_max_items,
+        ).create(
+            name=request.name,
+            query_fingerprint=fingerprint,
+            normalized_sql=normalized_sql,
+            plan=plan,
+            sample_count=len(request.analysis_ids),
         )
     except BaselineStoreError as exc:
         raise HTTPException(
@@ -81,9 +125,10 @@ def list_baselines(
     limit: Annotated[int, Query(ge=1, le=100)] = 50,
 ) -> PlanBaselineListResponse:
     try:
-        baselines = get_baseline_store(settings.baseline_database_path).list(
-            limit=limit
-        )
+        baselines = get_baseline_store(
+            settings.baseline_database_path,
+            settings.baseline_max_items,
+        ).list(limit=limit)
     except BaselineStoreError as exc:
         raise HTTPException(
             status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
@@ -103,20 +148,16 @@ def compare_baseline(
     request: BaselineComparisonRequest,
     settings: Annotated[Settings, Depends(get_settings)],
 ) -> PlanComparisonResponse:
-    try:
-        analysis = get_analysis_store(settings.analysis_ttl_seconds).get_snapshot(
-            request.analysis_id
-        )
-    except AnalysisNotFoundError as exc:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail="Analysis ID was not found or has expired.",
-        ) from exc
+    _, current_fingerprint, current_plan = _get_analysis_samples(
+        request.analysis_ids,
+        settings,
+    )
 
     try:
-        baseline = get_baseline_store(settings.baseline_database_path).get(
-            baseline_id
-        )
+        baseline = get_baseline_store(
+            settings.baseline_database_path,
+            settings.baseline_max_items,
+        ).get(baseline_id)
     except BaselineNotFoundError as exc:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
@@ -128,7 +169,6 @@ def compare_baseline(
             detail="The local plan baseline store is unavailable.",
         ) from exc
 
-    current_fingerprint = query_fingerprint(analysis.normalized_sql)
     if current_fingerprint != baseline.query_fingerprint:
         raise HTTPException(
             status_code=status.HTTP_409_CONFLICT,
@@ -138,7 +178,6 @@ def compare_baseline(
             ),
         )
 
-    current_plan = snapshot_plan(analysis.normalized_plan)
     comparison = compare_plan_snapshots(
         baseline.plan,
         current_plan,
@@ -148,8 +187,10 @@ def compare_baseline(
     )
     return PlanComparisonResponse(
         baseline_id=baseline.baseline_id,
-        current_analysis_id=request.analysis_id,
+        current_analysis_ids=request.analysis_ids,
         query_fingerprint=current_fingerprint,
+        baseline_sample_count=baseline.sample_count,
+        current_sample_count=len(request.analysis_ids),
         baseline_execution_time_ms=baseline.plan.execution_time_ms,
         current_execution_time_ms=current_plan.execution_time_ms,
         execution_time_delta_ms=comparison.execution_time_delta_ms,
@@ -169,3 +210,28 @@ def compare_baseline(
         regression_reasons=list(comparison.regression_reasons),
         recommendations_generated=False,
     )
+
+
+@router.delete(
+    "/{baseline_id}",
+    status_code=status.HTTP_204_NO_CONTENT,
+)
+def delete_baseline(
+    baseline_id: str,
+    settings: Annotated[Settings, Depends(get_settings)],
+) -> None:
+    try:
+        get_baseline_store(
+            settings.baseline_database_path,
+            settings.baseline_max_items,
+        ).delete(baseline_id)
+    except BaselineNotFoundError as exc:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Plan baseline was not found.",
+        ) from exc
+    except BaselineStoreError as exc:
+        raise HTTPException(
+            status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
+            detail="The local plan baseline store is unavailable.",
+        ) from exc
