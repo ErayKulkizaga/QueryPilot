@@ -1,4 +1,8 @@
-# QueryPilot Local — five-minute demo script
+# QueryPilot Local — five-minute live demo script
+
+This script is the reproducible walkthrough for presentations and reviewer
+verification. A separately recorded video is not required for the `v1.0.0`
+technical release.
 
 This script uses the synthetic `missing_customer_email_index` scenario. The
 index is applied manually only to the disposable demo database; QueryPilot

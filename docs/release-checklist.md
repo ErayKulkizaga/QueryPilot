@@ -30,7 +30,7 @@ python -m scripts.release_check --live
 - [x] English README and measured results
 - [x] Architecture document
 - [x] MVP closeout and version 2 direction documented
-- [x] Five-minute demo script
+- [x] Five-minute live demo script
 - [x] Six-slide technical presentation exported and visually checked
 - [x] Final screenshots captured
 - [x] Canonical evaluation and API smoke artefacts refreshed
@@ -42,10 +42,12 @@ python -m scripts.release_check --live
 - [x] Secret and dependency audits passed with zero remaining findings
 - [x] V2 workload prioritization preserves evidence-gated recommendations
 - [x] V2 live workload ranking and direct-access denial smoke recorded
-- [ ] Five-minute demo video recorded
+- [x] Recorded video explicitly removed from the final acceptance scope
 - [x] Public source repository confirmed:
   [ErayKulkizaga/QueryPilot](https://github.com/ErayKulkizaga/QueryPilot)
-- [ ] Version updated and `v1.0.0` tag created after final artefacts
+- [x] Version metadata updated to `1.0.0`
+- [x] `v1.0.0` release tag created from the final verified commit
 
-The version tag is intentionally last. It should represent the exact commit
-containing the reviewed presentation, screenshots, and demo link.
+The version tag represents the exact commit containing the reviewed
+presentation, screenshots, evaluation, smoke artefacts, and reproducible live
+walkthrough.

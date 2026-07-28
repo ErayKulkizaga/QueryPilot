@@ -1,13 +1,18 @@
 from __future__ import annotations
 
 import argparse
+import json
 import shutil
 import subprocess
 import sys
+import tomllib
 from pathlib import Path
+
+from app import __version__
 
 ROOT = Path(__file__).resolve().parents[1]
 PUBLIC_DEMO = ROOT / "public-demo"
+RELEASE_VERSION = "1.0.0"
 
 REQUIRED_FILES = (
     ROOT / "README.md",
@@ -42,6 +47,26 @@ def verify_required_files() -> None:
     print(f"[artifacts] {len(REQUIRED_FILES)} required files present")
 
 
+def verify_release_versions() -> None:
+    with (ROOT / "pyproject.toml").open("rb") as stream:
+        python_version = tomllib.load(stream)["project"]["version"]
+    with (PUBLIC_DEMO / "package.json").open(encoding="utf-8") as stream:
+        public_version = json.load(stream)["version"]
+
+    versions = {
+        "app": __version__,
+        "python package": python_version,
+        "public demo": public_version,
+    }
+    mismatches = {
+        name: version for name, version in versions.items() if version != RELEASE_VERSION
+    }
+    if mismatches:
+        rendered = ", ".join(f"{name}={version}" for name, version in mismatches.items())
+        raise SystemExit(f"Release version mismatch; expected {RELEASE_VERSION}: {rendered}")
+    print(f"[version] all release surfaces report {RELEASE_VERSION}")
+
+
 def parse_args() -> argparse.Namespace:
     parser = argparse.ArgumentParser(
         description="Run QueryPilot's release gate without starting Docker."
@@ -69,6 +94,7 @@ def npm_executable() -> str:
 def main() -> None:
     args = parse_args()
     verify_required_files()
+    verify_release_versions()
     run("tracked secret scan", [sys.executable, "-m", "scripts.secret_scan"])
     run("python tests", [sys.executable, "-m", "pytest"])
     run("python lint", [sys.executable, "-m", "ruff", "check", "."])

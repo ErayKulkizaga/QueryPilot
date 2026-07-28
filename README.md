@@ -14,6 +14,12 @@ This repository is the implementation of the seven-day MVP plan in
 [Release checklist](docs/release-checklist.md) ·
 [MVP closeout](docs/mvp-closeout.md)
 
+**Release:** `v1.0.0` technical MVP. The delivery package consists of the
+working source, automated evaluation, recorded smoke artefacts, screenshots,
+architecture documentation, and the technical presentation. A recorded demo
+video is intentionally not part of the release scope; `docs/demo-script.md`
+remains the reproducible live walkthrough.
+
 ![QueryPilot public demo showing a deterministic PostgreSQL plan diagnosis](artifacts/screenshots/querypilot-live-desktop.png)
 
 The public demo is intentionally database-free: pasted `EXPLAIN (FORMAT JSON)`
@@ -192,7 +198,7 @@ Project delivery references:
 
 - [`docs/architecture.md`](docs/architecture.md) — local and public runtime
   boundaries
-- [`docs/demo-script.md`](docs/demo-script.md) — evidence-first five-minute demo
+- [`docs/demo-script.md`](docs/demo-script.md) — evidence-first five-minute live walkthrough
 - [`docs/release-checklist.md`](docs/release-checklist.md) — automated and
   manual release gates
 

@@ -1,6 +1,6 @@
 # QueryPilot Local MVP closeout
 
-Status: release candidate, 27 July 2026.
+Status: released as `v1.0.0`, 28 July 2026.
 
 ## What this MVP proves
 
@@ -35,9 +35,9 @@ production workload testing or DBA review.
 | Six-slide technical presentation | Editable PPTX and visually verified PDF | Complete |
 | Before/after evidence | Seven-run synthetic fixture benchmark | Complete |
 | Limitations and future work | This closeout, architecture, demo script, and final slide | Complete |
-| Approximately five-minute recorded demo | Recording script is ready | User recording pending |
+| Five-minute reproducible live walkthrough | `docs/demo-script.md` | Complete |
 | Clean repository and security scan | Secret scan plus Python, Foundry, and npm audits | Complete |
-| `v1.0.0` tag and final link check | Tag must include the recorded video link | Pending after video |
+| `v1.0.0` version and release tag | Version metadata, final release gate, and repository tag | Complete |
 
 ## Verified presentation state
 
@@ -51,9 +51,18 @@ production workload testing or DBA review.
 - The demo script includes the measured before/after result and a no-answer
   scenario.
 
-The project is ready for a live presentation. The recorded five-minute video is
-still required only to make the formal delivery package complete and resilient
-when a live demo is unavailable.
+The project is ready for a live presentation. The presentation PDF,
+screenshots, committed evaluation and smoke artefacts, and the reproducible
+walkthrough are the official delivery evidence.
+
+## Scope amendment
+
+The original seven-day planning report listed an approximately five-minute
+recorded demo. That planning item was removed from the final acceptance scope
+on 28 July 2026. It does not affect the product, safety, evaluation, or
+reproducibility criteria, all of which are covered by executable checks and
+committed evidence. The planning PDF is retained unchanged as a historical
+source document; this closeout records the final scope decision.
 
 ## Measured evidence
 
@@ -104,12 +113,4 @@ placeholders are never executed automatically.
 
 ## Freeze decision
 
-Version 1 scope is frozen. The only remaining version 1 actions are:
-
-1. record the five-minute demo using `docs/demo-script.md`;
-2. add the video link to the delivery package;
-3. update versions to `1.0.0`;
-4. run the final gate;
-5. create and push the `v1.0.0` tag.
-
-All product expansion belongs to version 2.
+Version 1 is complete and frozen. All product expansion belongs to version 2.
