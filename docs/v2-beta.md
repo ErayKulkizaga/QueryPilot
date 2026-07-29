@@ -26,9 +26,14 @@ optimization recommendation.
   query fingerprint; imported SQL is never executed.
 - Named live plan contracts protect the missing-index and healthy primary-key
   fixture behavior in CI.
+- A guarded pilot runner requires an exact database-name match, a non-privileged
+  read-only role, an explicit query allowlist, and a second opt-in before
+  `EXPLAIN ANALYZE` execution.
+- The committed synthetic pilot smoke measured two allowlisted queries without
+  recording credentials, applying thresholds, or generating recommendations.
 - The public V2 showcase is synthetic, browser-only, and database-free.
-- The release gate passes 84 Python tests at 88.96% coverage plus seven public
-  behavior tests.
+- The release gate passes 93 Python tests at 88.76% coverage, one real-browser
+  Streamlit workflow, and seven public behavior tests.
 - Python and public dependency audits report zero known vulnerabilities.
 
 ## Remaining product boundaries
@@ -37,8 +42,9 @@ optimization recommendation.
   production database service.
 - Authentication, encrypted connection management, multi-user ownership, and
   production workload authorization are not implemented.
-- Query plan thresholds remain calibrated for controlled evidence and require
-  DBA review before production use.
+- Query plan threshold calibration can now produce a sanitized review report,
+  but a separately authorized non-production run and DBA approval remain
+  required before promotion.
 - Cold-cache labels record operator-controlled conditions; QueryPilot does not
   clear PostgreSQL or operating-system caches.
 - Optional Foundry Local sentence selection remains outside the correctness

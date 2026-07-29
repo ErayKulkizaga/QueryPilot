@@ -28,6 +28,7 @@ REQUIRED_FILES = (
     ROOT / "evaluation" / "workload_smoke_result.json",
     ROOT / "evaluation" / "baseline_smoke_result.json",
     ROOT / "evaluation" / "plan_contract_result.json",
+    ROOT / "evaluation" / "non_production_pilot_smoke_result.json",
     ROOT / "evaluation" / "security_audit.json",
     ROOT / "contracts" / "plan_contracts.json",
     ROOT / "artifacts" / "QueryPilot_Local_Teknik_Sunum.pptx",
