@@ -1,6 +1,7 @@
 -r requirements.txt
 pytest>=9.0.3,<10
 pytest-cov>=6,<7
+pytest-playwright>=0.8,<1
 pip-audit>=2.9,<3
 ruff>=0.9,<1
 setuptools>=83

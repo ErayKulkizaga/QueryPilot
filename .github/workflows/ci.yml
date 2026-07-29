@@ -13,7 +13,7 @@ permissions:
 jobs:
   verify:
     runs-on: ubuntu-latest
-    timeout-minutes: 15
+    timeout-minutes: 20
 
     steps:
       - name: Check out repository
@@ -55,6 +55,50 @@ jobs:
           python -m scripts.workload_smoke --output "$RUNNER_TEMP/workload-smoke.json"
           python -m scripts.baseline_smoke
           python -m scripts.plan_contract_check --output "$RUNNER_TEMP/plan-contract-result.json"
+
+      - name: Install Chromium for the UI test
+        run: python -m playwright install --with-deps chromium
+
+      - name: Run the real-browser Streamlit workflow
+        env:
+          QUERYPILOT_BASELINE_DATABASE_PATH: ${{ runner.temp }}/querypilot-e2e-baselines.sqlite3
+        run: |
+          set -euo pipefail
+          python -m uvicorn app.main:app \
+            --host 127.0.0.1 \
+            --port 8000 \
+            >"$RUNNER_TEMP/querypilot-api.log" 2>&1 &
+          api_pid=$!
+          python -m streamlit run streamlit_app.py \
+            --server.headless=true \
+            --server.address=127.0.0.1 \
+            --server.port=8501 \
+            >"$RUNNER_TEMP/querypilot-ui.log" 2>&1 &
+          ui_pid=$!
+          cleanup() {
+            kill "$api_pid" "$ui_pid" 2>/dev/null || true
+          }
+          trap cleanup EXIT
+
+          ready=0
+          for _ in {1..30}; do
+            if curl --fail --silent http://127.0.0.1:8000/health >/dev/null \
+              && curl --fail --silent http://127.0.0.1:8501/_stcore/health >/dev/null; then
+              ready=1
+              break
+            fi
+            sleep 1
+          done
+          if [ "$ready" -ne 1 ]; then
+            cat "$RUNNER_TEMP/querypilot-api.log"
+            cat "$RUNNER_TEMP/querypilot-ui.log"
+            exit 1
+          fi
+
+          python -m pytest e2e_tests/test_streamlit_workflow.py \
+            --browser chromium \
+            --tracing retain-on-failure \
+            --screenshot only-on-failure
 
       - name: Stop PostgreSQL fixture
         if: always()

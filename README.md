@@ -69,7 +69,8 @@ The current beta includes:
 - a database-free V2 public showcase for workload ranking and regression
   evidence
 - a GitHub Actions release gate covering dependency audits, Python tests,
-  minimum coverage, security lint, live PostgreSQL checks, and public-demo tests
+  minimum coverage, security lint, live PostgreSQL checks, a real-browser
+  Streamlit workflow, and public-demo tests
 
 ## Local setup
 

@@ -27,8 +27,8 @@ optimization recommendation.
 - Named live plan contracts protect the missing-index and healthy primary-key
   fixture behavior in CI.
 - The public V2 showcase is synthetic, browser-only, and database-free.
-- The release gate passes 84 Python tests at 88.96% coverage plus seven public
-  behavior tests.
+- The release gate passes 84 Python tests at 88.96% coverage, one real-browser
+  Streamlit workflow, and seven public behavior tests.
 - Python and public dependency audits report zero known vulnerabilities.
 
 ## Remaining product boundaries
