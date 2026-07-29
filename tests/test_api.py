@@ -1,5 +1,6 @@
 from fastapi.testclient import TestClient
 
+from app.config import Settings, get_settings
 from app.llm.generator import GenerationResult
 from app.main import app
 from app.schemas import AnalysisReport, Citation
@@ -111,3 +112,176 @@ def test_enrichment_rejects_unknown_analysis_id() -> None:
     response = client.post("/api/v1/analyses/not-a-real-id/enrichment")
 
     assert response.status_code == 404
+
+
+def test_baseline_create_list_and_compare_are_evidence_only(
+    monkeypatch,
+    tmp_path,
+) -> None:
+    plan_state = {
+        "node_type": "Index Scan",
+        "index_name": "customers_email_idx",
+        "execution_time": 2.0,
+        "total_cost": 10.0,
+    }
+
+    class MutableExplainRunner:
+        def __init__(self, **_: object) -> None:
+            pass
+
+        def run(self, _: str) -> list[dict[str, object]]:
+            plan: dict[str, object] = {
+                "Node Type": plan_state["node_type"],
+                "Relation Name": "customers",
+                "Plan Rows": 1,
+                "Actual Rows": 1,
+                "Actual Loops": 1,
+                "Total Cost": plan_state["total_cost"],
+                "Actual Total Time": plan_state["execution_time"],
+            }
+            if plan_state["index_name"]:
+                plan["Index Name"] = plan_state["index_name"]
+            return [
+                {
+                    "Plan": plan,
+                    "Execution Time": plan_state["execution_time"],
+                }
+            ]
+
+    settings = Settings(
+        baseline_database_path=tmp_path / "baselines.sqlite3",
+    )
+    app.dependency_overrides[get_settings] = lambda: settings
+    monkeypatch.setattr("app.api.analyses.ExplainRunner", MutableExplainRunner)
+
+    try:
+        baseline_analyses = [
+            client.post(
+                "/api/v1/analyses",
+                json={
+                    "sql": (
+                        "SELECT * FROM customers "
+                        "WHERE email = 'demo@example.com'"
+                    )
+                },
+            ).json()
+            for _ in range(3)
+        ]
+        baseline_response = client.post(
+            "/api/v1/baselines",
+            json={
+                "analysis_ids": [
+                    analysis["analysis_id"] for analysis in baseline_analyses
+                ],
+                "name": "customer email baseline",
+            },
+        )
+        assert baseline_response.status_code == 201
+        baseline = baseline_response.json()
+        assert baseline["sample_count"] == 3
+
+        listed = client.get("/api/v1/baselines").json()["baselines"]
+        assert [item["baseline_id"] for item in listed] == [baseline["baseline_id"]]
+
+        plan_state.update(
+            {
+                "node_type": "Seq Scan",
+                "index_name": None,
+                "execution_time": 4.0,
+                "total_cost": 15.0,
+            }
+        )
+        current_analyses = [
+            client.post(
+                "/api/v1/analyses",
+                json={
+                    "sql": (
+                        "SELECT * FROM customers "
+                        "WHERE email = 'demo@example.com'"
+                    )
+                },
+            ).json()
+            for _ in range(2)
+        ]
+        comparison_response = client.post(
+            f"/api/v1/baselines/{baseline['baseline_id']}/comparisons",
+            json={
+                "analysis_ids": [
+                    analysis["analysis_id"] for analysis in current_analyses
+                ]
+            },
+        )
+        delete_response = client.delete(
+            f"/api/v1/baselines/{baseline['baseline_id']}"
+        )
+        remaining_baselines = client.get("/api/v1/baselines").json()["baselines"]
+    finally:
+        app.dependency_overrides.pop(get_settings, None)
+
+    assert comparison_response.status_code == 200
+    comparison = comparison_response.json()
+    assert comparison["regression_detected"] is True
+    assert comparison["recommendations_generated"] is False
+    assert comparison["execution_time_change_percent"] == 100.0
+    assert comparison["baseline_sample_count"] == 3
+    assert comparison["current_sample_count"] == 2
+    assert any(
+        "sequential scan" in reason
+        for reason in comparison["regression_reasons"]
+    )
+
+    assert delete_response.status_code == 204
+    assert remaining_baselines == []
+
+
+def test_baseline_comparison_rejects_different_query(
+    monkeypatch,
+    tmp_path,
+) -> None:
+    class FakeExplainRunner:
+        def __init__(self, **_: object) -> None:
+            pass
+
+        def run(self, _: str) -> list[dict[str, object]]:
+            return [
+                {
+                    "Plan": {
+                        "Node Type": "Seq Scan",
+                        "Relation Name": "customers",
+                        "Plan Rows": 1,
+                        "Actual Rows": 1,
+                        "Actual Loops": 1,
+                        "Total Cost": 10,
+                        "Actual Total Time": 2,
+                    },
+                    "Execution Time": 2,
+                }
+            ]
+
+    settings = Settings(
+        baseline_database_path=tmp_path / "baselines.sqlite3",
+    )
+    app.dependency_overrides[get_settings] = lambda: settings
+    monkeypatch.setattr("app.api.analyses.ExplainRunner", FakeExplainRunner)
+
+    try:
+        first = client.post(
+            "/api/v1/analyses",
+            json={"sql": "SELECT * FROM customers WHERE id = 1"},
+        ).json()
+        baseline = client.post(
+            "/api/v1/baselines",
+            json={"analysis_ids": [first["analysis_id"]], "name": "id lookup"},
+        ).json()
+        second = client.post(
+            "/api/v1/analyses",
+            json={"sql": "SELECT * FROM customers WHERE id = 2"},
+        ).json()
+        response = client.post(
+            f"/api/v1/baselines/{baseline['baseline_id']}/comparisons",
+            json={"analysis_ids": [second["analysis_id"]]},
+        )
+    finally:
+        app.dependency_overrides.pop(get_settings, None)
+
+    assert response.status_code == 409

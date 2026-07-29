@@ -77,7 +77,11 @@ def create_analysis(
 
     analysis = analyze_plan(normalized_plan)
     report = build_fallback_report(analysis)
-    analysis_id = get_analysis_store(settings.analysis_ttl_seconds).put(analysis)
+    analysis_id = get_analysis_store(settings.analysis_ttl_seconds).put(
+        analysis,
+        normalized_plan=normalized_plan,
+        normalized_sql=normalized_sql,
+    )
     latency_ms = round((perf_counter() - started) * 1000)
 
     return AnalysisResponse(

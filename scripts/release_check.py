@@ -25,6 +25,7 @@ REQUIRED_FILES = (
     ROOT / "evaluation" / "api_scenario_smoke_result.json",
     ROOT / "evaluation" / "before_after_benchmark.json",
     ROOT / "evaluation" / "workload_smoke_result.json",
+    ROOT / "evaluation" / "baseline_smoke_result.json",
     ROOT / "evaluation" / "security_audit.json",
     ROOT / "artifacts" / "QueryPilot_Local_Teknik_Sunum.pptx",
     ROOT / "artifacts" / "QueryPilot_Local_Teknik_Sunum.pdf",
@@ -36,7 +37,8 @@ REQUIRED_FILES = (
 
 def run(label: str, command: list[str], *, cwd: Path = ROOT) -> None:
     print(f"\n[{label}] {' '.join(command)}")
-    subprocess.run(command, cwd=cwd, check=True)
+    # Every command is assembled from repository constants, never user input.
+    subprocess.run(command, cwd=cwd, check=True)  # noqa: S603
 
 
 def verify_required_files() -> None:
@@ -96,11 +98,47 @@ def main() -> None:
     verify_required_files()
     verify_release_versions()
     run("tracked secret scan", [sys.executable, "-m", "scripts.secret_scan"])
-    run("python tests", [sys.executable, "-m", "pytest"])
+    run(
+        "Python dependency audit",
+        [
+            sys.executable,
+            "-m",
+            "pip_audit",
+            "--local",
+            "--progress-spinner",
+            "off",
+        ],
+    )
+    run(
+        "Python tests and coverage",
+        [
+            sys.executable,
+            "-m",
+            "pytest",
+            "--cov=app",
+            "--cov-report=term-missing",
+            "--cov-fail-under=80",
+        ],
+    )
     run("python lint", [sys.executable, "-m", "ruff", "check", "."])
+    run(
+        "Python security lint",
+        [
+            sys.executable,
+            "-m",
+            "ruff",
+            "check",
+            "app",
+            "scripts",
+            "streamlit_app.py",
+            "--select",
+            "S",
+        ],
+    )
 
     if not args.skip_public:
         npm = npm_executable()
+        run("public dependency audit", [npm, "audit"], cwd=PUBLIC_DEMO)
         run("public lint", [npm, "run", "lint"], cwd=PUBLIC_DEMO)
         run("public build and tests", [npm, "test"], cwd=PUBLIC_DEMO)
 

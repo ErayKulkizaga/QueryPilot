@@ -1,4 +1,5 @@
 from functools import lru_cache
+from pathlib import Path
 
 from pydantic import Field
 from pydantic_settings import BaseSettings, SettingsConfigDict
@@ -13,7 +14,7 @@ class Settings(BaseSettings):
 
     environment: str = "development"
     database_url: str = Field(
-        default="postgresql://querypilot_app:querypilot_app_dev@localhost:5432/querypilot"
+        default="postgresql://querypilot_app:querypilot_app_dev@127.0.0.1:5432/querypilot"
     )
     statement_timeout_ms: int = Field(default=3000, ge=100, le=30_000)
     foundry_app_name: str = "querypilot_local"
@@ -22,6 +23,11 @@ class Settings(BaseSettings):
     generation_repair_cutoff_seconds: float = Field(default=8.0, ge=0, le=60)
     analysis_ttl_seconds: int = Field(default=900, ge=60, le=86_400)
     workload_min_calls: int = Field(default=2, ge=1, le=1_000_000)
+    baseline_database_path: Path = Path("data/querypilot_baselines.sqlite3")
+    baseline_max_items: int = Field(default=100, ge=1, le=10_000)
+    regression_execution_ratio: float = Field(default=1.5, ge=1.0, le=10.0)
+    regression_execution_delta_ms: float = Field(default=1.0, ge=0.0, le=60_000)
+    regression_cost_ratio: float = Field(default=1.25, ge=1.0, le=10.0)
 
 
 @lru_cache

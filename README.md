@@ -56,6 +56,11 @@ The first working slice includes:
   entirely in the browser
 - a least-privilege `pg_stat_statements` workload view and deterministic
   total-execution-time ranking API
+- persistent local plan baselines and same-query deterministic plan comparison
+- evidence-threshold regression alerts for execution time, root cost, and
+  index-backed access changing to a sequential scan
+- a GitHub Actions release gate covering dependency audits, Python tests,
+  minimum coverage, security lint, live PostgreSQL checks, and public-demo tests
 
 ## Local setup
 
@@ -69,6 +74,11 @@ Copy-Item .env.example .env
 docker compose up -d
 uvicorn app.main:app --reload
 ```
+
+PostgreSQL is bound to `127.0.0.1` by default, so the development fixture is
+not exposed to other devices on the network. On a shared machine, change both
+PostgreSQL passwords and their matching database URLs in the ignored `.env`
+file before recreating the fixture.
 
 Existing QueryPilot Docker volumes created before workload prioritization do
 not contain the extension or restricted view. Because the local database is a
@@ -87,7 +97,7 @@ port in the application connection string:
 
 ```powershell
 $env:QUERYPILOT_POSTGRES_PORT = "5433"
-$env:QUERYPILOT_DATABASE_URL = "postgresql://querypilot_app:querypilot_app_dev@localhost:5433/querypilot"
+$env:QUERYPILOT_DATABASE_URL = "postgresql://querypilot_app:querypilot_app_dev@127.0.0.1:5433/querypilot"
 docker compose up -d
 ```
 
@@ -114,6 +124,56 @@ times and a primary-key lookup fifteen times. The aggregate ranked first by
 total execution time, only two user-workload queries remained after
 infrastructure filtering, and direct `pg_stat_statements` access from the
 application role was denied.
+
+After analyzing a query, store its current plan as a local baseline:
+
+```powershell
+$baselineBody = @{
+  analysis_ids = @("<analysis-id-1>", "<analysis-id-2>", "<analysis-id-3>")
+  name = "release-1.0 customer email plan"
+} | ConvertTo-Json
+$baseline = Invoke-RestMethod `
+  -Method Post `
+  -Uri http://127.0.0.1:8000/api/v1/baselines `
+  -ContentType application/json `
+  -Body $baselineBody
+```
+
+Run the same normalized SQL again and compare the new analysis with the
+baseline:
+
+```powershell
+$comparisonBody = @{
+  analysis_ids = @(
+    "<new-analysis-id-1>",
+    "<new-analysis-id-2>",
+    "<new-analysis-id-3>"
+  )
+} | ConvertTo-Json
+Invoke-RestMethod `
+  -Method Post `
+  -Uri "http://127.0.0.1:8000/api/v1/baselines/$($baseline.baseline_id)/comparisons" `
+  -ContentType application/json `
+  -Body $comparisonBody
+```
+
+Baselines are stored locally in SQLite under `data/` by default and are not
+committed. Comparison is allowed only when the normalized SQL fingerprint
+matches. Up to nine structurally identical plan samples can be aggregated; the
+median timing and node metrics are used so one noisy run cannot dominate the
+result. Timing regressions must exceed both a ratio and an absolute millisecond
+threshold; plan differences never create a recommendation or execute SQL.
+
+Delete a reviewed baseline explicitly:
+
+```powershell
+Invoke-RestMethod `
+  -Method Delete `
+  -Uri "http://127.0.0.1:8000/api/v1/baselines/$($baseline.baseline_id)"
+```
+
+The store retains the newest 100 baselines by default. Change this local limit
+with `QUERYPILOT_BASELINE_MAX_ITEMS`.
 
 Analyze the missing-index demo:
 
@@ -201,6 +261,8 @@ Project delivery references:
 - [`docs/demo-script.md`](docs/demo-script.md) — evidence-first five-minute live walkthrough
 - [`docs/release-checklist.md`](docs/release-checklist.md) — automated and
   manual release gates
+- [`docs/v2-plan-regression.md`](docs/v2-plan-regression.md) — baseline,
+  comparison, and regression evidence contract
 
 Run the default release gate without starting Docker or Foundry Local:
 
@@ -208,12 +270,18 @@ Run the default release gate without starting Docker or Foundry Local:
 python -m scripts.release_check
 ```
 
+The release gate enforces at least 80% Python coverage and runs secret,
+dependency, lint, security-lint, build, and behavior checks. GitHub Actions
+additionally starts a fresh PostgreSQL fixture and verifies workload ranking,
+least-privilege access, and plan-baseline comparison.
+
 Run the complete API smoke test while PostgreSQL is available:
 
 ```powershell
 docker compose up -d
 python -m scripts.api_smoke
 python -m scripts.workload_smoke
+python -m scripts.baseline_smoke
 docker compose stop
 ```
 

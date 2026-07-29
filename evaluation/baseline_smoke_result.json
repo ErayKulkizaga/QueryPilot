@@ -1,0 +1,15 @@
+{
+  "captured_at": "2026-07-28T15:55:03.786874+00:00",
+  "baseline_id": "266d692864b444cc8589846e6f356efb",
+  "query_fingerprint": "879074f621aecd87a02578c85db2af16619d24e34ebf98ac9e9f0a110f752f82",
+  "baseline_sample_count": 3,
+  "current_sample_count": 3,
+  "baseline_execution_time_ms": 2.153,
+  "current_execution_time_ms": 2.135,
+  "execution_time_delta_ms": -0.018000000000000238,
+  "root_cost_delta": 0.0,
+  "node_count_delta": 0,
+  "regression_detected": false,
+  "regression_reasons": [],
+  "recommendations_generated": false
+}

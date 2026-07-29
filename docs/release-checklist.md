@@ -9,7 +9,9 @@ python -m scripts.release_check
 ```
 
 The default gate keeps Docker and Foundry Local off. It verifies required
-delivery files, Python tests, Ruff, and the public demo lint/build/tests.
+delivery files, tracked secrets, Python and npm dependency advisories, at least
+80% Python coverage, Ruff correctness and security rules, and the public demo
+lint/build/tests.
 
 If PostgreSQL and Foundry Local are already running and a live integration
 check is wanted:
@@ -19,6 +21,9 @@ python -m scripts.release_check --live
 ```
 
 `--live` does not start or stop Docker; it only runs `scripts.api_smoke`.
+GitHub Actions separately starts a fresh PostgreSQL fixture, runs the workload
+permission/ranking smoke and the multi-sample baseline smoke, and always removes
+the fixture afterward.
 
 ## Manual release items
 
@@ -40,6 +45,9 @@ python -m scripts.release_check --live
 - [x] Dependency list reviewed and clean-install compatibility verified
 - [x] Release gate passed from a newly created Python environment
 - [x] Secret and dependency audits passed with zero remaining findings
+- [x] PostgreSQL bound to loopback with configurable local credentials
+- [x] Python and npm audits plus minimum coverage enforced in CI
+- [x] Fresh PostgreSQL workload and baseline smokes enforced in CI
 - [x] V2 workload prioritization preserves evidence-gated recommendations
 - [x] V2 live workload ranking and direct-access denial smoke recorded
 - [x] Recorded video explicitly removed from the final acceptance scope

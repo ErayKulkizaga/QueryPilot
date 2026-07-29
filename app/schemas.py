@@ -2,7 +2,7 @@ from datetime import datetime
 from enum import StrEnum
 from typing import Any, Literal
 
-from pydantic import BaseModel, ConfigDict, Field, model_validator
+from pydantic import BaseModel, ConfigDict, Field, field_validator, model_validator
 
 
 class StrictModel(BaseModel):
@@ -98,3 +98,91 @@ class WorkloadQueryListResponse(StrictModel):
     ranking_basis: Literal["total_exec_time_ms"]
     recommendations_generated: Literal[False]
     queries: list[WorkloadQuery]
+
+
+class BaselineCreateRequest(StrictModel):
+    analysis_ids: list[str] = Field(min_length=1, max_length=9)
+    name: str = Field(min_length=1, max_length=100)
+
+    @field_validator("analysis_ids")
+    @classmethod
+    def validate_analysis_ids(cls, value: list[str]) -> list[str]:
+        if any(len(analysis_id) != 32 for analysis_id in value):
+            raise ValueError("Every analysis ID must be 32 characters.")
+        if len(set(value)) != len(value):
+            raise ValueError("Analysis IDs must be unique.")
+        return value
+
+    @field_validator("name")
+    @classmethod
+    def validate_name(cls, value: str) -> str:
+        stripped = value.strip()
+        if not stripped:
+            raise ValueError("Baseline name cannot be blank.")
+        return stripped
+
+
+class PlanBaselineResponse(StrictModel):
+    baseline_id: str
+    name: str
+    query_fingerprint: str
+    normalized_sql: str
+    created_at: datetime
+    execution_time_ms: float = Field(ge=0)
+    root_total_cost: float = Field(ge=0)
+    node_count: int = Field(ge=1)
+    sample_count: int = Field(ge=1, le=9)
+
+
+class PlanBaselineListResponse(StrictModel):
+    baselines: list[PlanBaselineResponse]
+
+
+class BaselineComparisonRequest(StrictModel):
+    analysis_ids: list[str] = Field(min_length=1, max_length=9)
+
+    @field_validator("analysis_ids")
+    @classmethod
+    def validate_analysis_ids(cls, value: list[str]) -> list[str]:
+        if any(len(analysis_id) != 32 for analysis_id in value):
+            raise ValueError("Every analysis ID must be 32 characters.")
+        if len(set(value)) != len(value):
+            raise ValueError("Analysis IDs must be unique.")
+        return value
+
+
+class PlanNodeChangeResponse(StrictModel):
+    path: str
+    change_type: Literal[
+        "added",
+        "removed",
+        "node_type_changed",
+        "index_changed",
+    ]
+    before_node_type: str | None
+    after_node_type: str | None
+    before_index_name: str | None = None
+    after_index_name: str | None = None
+
+
+class PlanComparisonResponse(StrictModel):
+    baseline_id: str
+    current_analysis_ids: list[str]
+    query_fingerprint: str
+    baseline_sample_count: int = Field(ge=1, le=9)
+    current_sample_count: int = Field(ge=1, le=9)
+    baseline_execution_time_ms: float = Field(ge=0)
+    current_execution_time_ms: float = Field(ge=0)
+    execution_time_delta_ms: float
+    execution_time_change_percent: float | None
+    baseline_root_cost: float = Field(ge=0)
+    current_root_cost: float = Field(ge=0)
+    root_cost_delta: float
+    root_cost_change_percent: float | None
+    baseline_node_count: int = Field(ge=1)
+    current_node_count: int = Field(ge=1)
+    node_count_delta: int
+    node_changes: list[PlanNodeChangeResponse]
+    regression_detected: bool
+    regression_reasons: list[str]
+    recommendations_generated: Literal[False]

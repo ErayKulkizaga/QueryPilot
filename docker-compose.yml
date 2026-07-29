@@ -1,7 +1,6 @@
 services:
   postgres:
     image: postgres:17-alpine
-    container_name: querypilot-postgres
     command:
       [
         "postgres",
@@ -13,9 +12,10 @@ services:
     environment:
       POSTGRES_DB: querypilot
       POSTGRES_USER: querypilot_owner
-      POSTGRES_PASSWORD: querypilot_owner_dev
+      POSTGRES_PASSWORD: "${QUERYPILOT_POSTGRES_OWNER_PASSWORD:-querypilot_owner_dev}"
+      QUERYPILOT_POSTGRES_APP_PASSWORD: "${QUERYPILOT_POSTGRES_APP_PASSWORD:-querypilot_app_dev}"
     ports:
-      - "${QUERYPILOT_POSTGRES_PORT:-5432}:5432"
+      - "127.0.0.1:${QUERYPILOT_POSTGRES_PORT:-5432}:5432"
     healthcheck:
       test:
         [
@@ -29,7 +29,7 @@ services:
       - querypilot-postgres-data:/var/lib/postgresql/data
       - ./sql/001_init.sql:/docker-entrypoint-initdb.d/001_init.sql:ro
       - ./sql/002_seed.sql:/docker-entrypoint-initdb.d/002_seed.sql:ro
-      - ./sql/003_permissions.sql:/docker-entrypoint-initdb.d/003_permissions.sql:ro
+      - ./sql/003_permissions.sh:/docker-entrypoint-initdb.d/003_permissions.sh:ro
       - ./sql/004_workload_stats.sql:/docker-entrypoint-initdb.d/004_workload_stats.sql:ro
 
 volumes:

@@ -1,0 +1,60 @@
+name: QueryPilot release gate
+
+on:
+  push:
+    branches:
+      - main
+      - "codex/**"
+  pull_request:
+
+permissions:
+  contents: read
+
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v6
+
+      - name: Set up Python
+        uses: actions/setup-python@v6
+        with:
+          python-version: "3.11"
+          cache: pip
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v6
+        with:
+          node-version: "22.13.0"
+          cache: npm
+          cache-dependency-path: public-demo/package-lock.json
+
+      - name: Upgrade Python packaging tools
+        run: python -m pip install --upgrade pip setuptools
+
+      - name: Install Python dependencies
+        run: python -m pip install -r requirements-dev.txt
+
+      - name: Install public demo dependencies
+        working-directory: public-demo
+        run: npm ci
+
+      - name: Run release and plan-regression gate
+        run: python -m scripts.release_check
+
+      - name: Start isolated PostgreSQL fixture
+        run: docker compose up -d --wait
+
+      - name: Run live workload and baseline checks
+        env:
+          QUERYPILOT_BASELINE_DATABASE_PATH: ${{ runner.temp }}/querypilot-baselines.sqlite3
+        run: |
+          python -m scripts.workload_smoke --output "$RUNNER_TEMP/workload-smoke.json"
+          python -m scripts.baseline_smoke
+
+      - name: Stop PostgreSQL fixture
+        if: always()
+        run: docker compose down -v
