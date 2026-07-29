@@ -2,6 +2,7 @@ from dataclasses import asdict
 from typing import Annotated
 
 from fastapi import APIRouter, Depends, HTTPException, Query, status
+from fastapi.responses import PlainTextResponse
 
 from app.analysis.plan_comparator import (
     PlanAggregationError,
@@ -11,10 +12,16 @@ from app.analysis.plan_comparator import (
     query_fingerprint,
     snapshot_plan,
 )
+from app.analysis.sql_validator import SQLValidationError, validate_read_only_sql
 from app.analysis_store import (
     AnalysisNotFoundError,
     StoredAnalysis,
     get_analysis_store,
+)
+from app.baseline_portability import (
+    export_baseline,
+    imported_plan,
+    render_baseline_markdown,
 )
 from app.baseline_store import (
     BaselineNotFoundError,
@@ -26,6 +33,7 @@ from app.config import Settings, get_settings
 from app.schemas import (
     BaselineComparisonRequest,
     BaselineCreateRequest,
+    PlanBaselineExport,
     PlanBaselineListResponse,
     PlanBaselineResponse,
     PlanComparisonResponse,
@@ -46,6 +54,7 @@ def _baseline_response(baseline: PlanBaseline) -> PlanBaselineResponse:
         root_total_cost=baseline.plan.root_total_cost,
         node_count=len(baseline.plan.nodes),
         sample_count=baseline.sample_count,
+        measurement_group=baseline.measurement_group,
     )
 
 
@@ -110,6 +119,7 @@ def create_baseline(
             normalized_sql=normalized_sql,
             plan=plan,
             sample_count=len(request.analysis_ids),
+            measurement_group=request.measurement_group.value,
         )
     except BaselineStoreError as exc:
         raise HTTPException(
@@ -140,21 +150,54 @@ def list_baselines(
 
 
 @router.post(
-    "/{baseline_id}/comparisons",
-    response_model=PlanComparisonResponse,
+    "/imports",
+    response_model=PlanBaselineResponse,
+    status_code=status.HTTP_201_CREATED,
 )
-def compare_baseline(
-    baseline_id: str,
-    request: BaselineComparisonRequest,
+def import_baseline(
+    request: PlanBaselineExport,
     settings: Annotated[Settings, Depends(get_settings)],
-) -> PlanComparisonResponse:
-    _, current_fingerprint, current_plan = _get_analysis_samples(
-        request.analysis_ids,
-        settings,
-    )
+) -> PlanBaselineResponse:
+    try:
+        normalized_sql = validate_read_only_sql(request.normalized_sql)
+    except SQLValidationError as exc:
+        raise HTTPException(
+            status_code=status.HTTP_422_UNPROCESSABLE_CONTENT,
+            detail="Imported baseline SQL must be one read-only SELECT.",
+        ) from exc
+    expected_fingerprint = query_fingerprint(normalized_sql)
+    if expected_fingerprint != request.query_fingerprint:
+        raise HTTPException(
+            status_code=status.HTTP_422_UNPROCESSABLE_CONTENT,
+            detail="Imported baseline fingerprint does not match its SQL.",
+        )
 
     try:
         baseline = get_baseline_store(
+            settings.baseline_database_path,
+            settings.baseline_max_items,
+        ).create(
+            name=request.name,
+            query_fingerprint=expected_fingerprint,
+            normalized_sql=normalized_sql,
+            plan=imported_plan(request),
+            sample_count=request.sample_count,
+            measurement_group=request.measurement_group.value,
+        )
+    except (BaselineStoreError, ValueError) as exc:
+        raise HTTPException(
+            status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
+            detail="The imported plan baseline could not be stored.",
+        ) from exc
+    return _baseline_response(baseline)
+
+
+def _get_baseline_or_error(
+    baseline_id: str,
+    settings: Settings,
+) -> PlanBaseline:
+    try:
+        return get_baseline_store(
             settings.baseline_database_path,
             settings.baseline_max_items,
         ).get(baseline_id)
@@ -169,12 +212,61 @@ def compare_baseline(
             detail="The local plan baseline store is unavailable.",
         ) from exc
 
+
+@router.get("/{baseline_id}/export", response_model=PlanBaselineExport)
+def download_baseline(
+    baseline_id: str,
+    settings: Annotated[Settings, Depends(get_settings)],
+) -> PlanBaselineExport:
+    return export_baseline(_get_baseline_or_error(baseline_id, settings))
+
+
+@router.get(
+    "/{baseline_id}/report",
+    response_class=PlainTextResponse,
+)
+def download_baseline_report(
+    baseline_id: str,
+    settings: Annotated[Settings, Depends(get_settings)],
+) -> PlainTextResponse:
+    report = render_baseline_markdown(
+        _get_baseline_or_error(baseline_id, settings)
+    )
+    return PlainTextResponse(report, media_type="text/markdown")
+
+
+@router.post(
+    "/{baseline_id}/comparisons",
+    response_model=PlanComparisonResponse,
+)
+def compare_baseline(
+    baseline_id: str,
+    request: BaselineComparisonRequest,
+    settings: Annotated[Settings, Depends(get_settings)],
+) -> PlanComparisonResponse:
+    _, current_fingerprint, current_plan = _get_analysis_samples(
+        request.analysis_ids,
+        settings,
+    )
+
+    baseline = _get_baseline_or_error(baseline_id, settings)
+
     if current_fingerprint != baseline.query_fingerprint:
         raise HTTPException(
             status_code=status.HTTP_409_CONFLICT,
             detail=(
                 "The current analysis does not match the baseline query. "
                 "Compare plans only for the same normalized SQL."
+            ),
+        )
+
+    if request.measurement_group.value != baseline.measurement_group:
+        raise HTTPException(
+            status_code=status.HTTP_409_CONFLICT,
+            detail=(
+                "The current measurement group does not match the baseline. "
+                "Compare cold-cache, warm-cache, and unspecified samples only "
+                "within the same group."
             ),
         )
 
@@ -191,6 +283,8 @@ def compare_baseline(
         query_fingerprint=current_fingerprint,
         baseline_sample_count=baseline.sample_count,
         current_sample_count=len(request.analysis_ids),
+        baseline_measurement_group=baseline.measurement_group,
+        current_measurement_group=request.measurement_group,
         baseline_execution_time_ms=baseline.plan.execution_time_ms,
         current_execution_time_ms=current_plan.execution_time_ms,
         execution_time_delta_ms=comparison.execution_time_delta_ms,

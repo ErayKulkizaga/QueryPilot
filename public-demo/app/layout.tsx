@@ -19,7 +19,7 @@ export async function generateMetadata(): Promise<Metadata> {
   const protocol =
     requestHeaders.get("x-forwarded-proto") ??
     (host.startsWith("localhost") ? "http" : "https");
-  const imageUrl = `${protocol}://${host}/og.png`;
+  const imageUrl = `${protocol}://${host}/og-v2.png`;
 
   return {
     title: {
@@ -27,14 +27,15 @@ export async function generateMetadata(): Promise<Metadata> {
       template: "%s · QueryPilot",
     },
     description:
-      "PostgreSQL EXPLAIN JSON planlarını güvenli ve deterministik kurallarla analiz eden offline-first demo.",
+      "PostgreSQL EXPLAIN planlarını, sentetik iş yükünü ve regresyon kanıtlarını güvenli kurallarla inceleyen offline-first demo.",
     icons: {
       icon: "/favicon.svg",
       shortcut: "/favicon.svg",
     },
     openGraph: {
       title: "QueryPilot Public Demo",
-      description: "Önce kanıt, sonra öneri. Güvenli PostgreSQL plan analizi.",
+      description:
+        "Önce kanıt, sonra öneri. Plan analizi ve V2 regresyon gösterimi.",
       type: "website",
       images: [
         {
@@ -48,7 +49,8 @@ export async function generateMetadata(): Promise<Metadata> {
     twitter: {
       card: "summary_large_image",
       title: "QueryPilot Public Demo",
-      description: "Önce kanıt, sonra öneri. Güvenli PostgreSQL plan analizi.",
+      description:
+        "Önce kanıt, sonra öneri. Plan analizi ve V2 regresyon gösterimi.",
       images: [imageUrl],
     },
   };

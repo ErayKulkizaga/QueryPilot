@@ -1,8 +1,8 @@
 {
-  "audited_at_utc": "2026-07-28T19:41:44Z",
+  "audited_at_utc": "2026-07-29T09:49:35Z",
   "tracked_secret_scan": {
     "status": "passed",
-    "tracked_file_count": 131,
+    "tracked_file_count": 145,
     "finding_count": 0,
     "command": "python -m scripts.secret_scan"
   },
@@ -25,8 +25,8 @@
   },
   "python_test_coverage": {
     "status": "passed",
-    "test_count": 64,
-    "coverage_percent": 82.46,
+    "test_count": 84,
+    "coverage_percent": 88.96,
     "required_percent": 80.0
   },
   "live_postgresql_security": {
@@ -56,6 +56,14 @@
     {
       "area": "Python packaging tools",
       "resolution": "The vulnerable setuptools 79.0.1 bundled in the GitHub Actions image is upgraded and pinned to setuptools 83.0.0 or newer before dependency auditing."
+    },
+    {
+      "area": "workload-to-analysis handoff",
+      "resolution": "PostgreSQL parameter placeholders and blank representative SQL are blocked before analysis, and the user must explicitly confirm local synthetic EXPLAIN ANALYZE execution."
+    },
+    {
+      "area": "portable plan baselines",
+      "resolution": "Imports enforce a bounded strict schema, read-only SQL validation, a matching SHA-256 query fingerprint, known measurement groups, and never execute imported SQL."
     }
   ]
 }

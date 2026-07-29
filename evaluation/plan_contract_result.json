@@ -1,0 +1,28 @@
+{
+  "captured_at": "2026-07-29T09:38:12.894947+00:00",
+  "schema_version": 1,
+  "contract_count": 2,
+  "passed_count": 2,
+  "contracts": [
+    {
+      "name": "v2-missing-customer-email-index",
+      "release": "v2",
+      "passed": true,
+      "errors": [],
+      "observed_issue_category": "potential_missing_index",
+      "observed_node_types": [
+        "Seq Scan"
+      ]
+    },
+    {
+      "name": "v2-healthy-primary-key-lookup",
+      "release": "v2",
+      "passed": true,
+      "errors": [],
+      "observed_issue_category": "no_clear_issue",
+      "observed_node_types": [
+        "Index Scan"
+      ]
+    }
+  ]
+}

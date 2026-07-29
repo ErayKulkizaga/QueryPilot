@@ -28,6 +28,7 @@ def main() -> None:
                     payload["analysis_id"] for payload in baseline_payloads
                 ],
                 "name": "live missing-index smoke baseline",
+                "measurement_group": "warm_cache",
             },
         )
         baseline_response.raise_for_status()
@@ -44,7 +45,8 @@ def main() -> None:
             json={
                 "analysis_ids": [
                     payload["analysis_id"] for payload in current_payloads
-                ]
+                ],
+                "measurement_group": "warm_cache",
             },
         )
         comparison_response.raise_for_status()
@@ -61,6 +63,7 @@ def main() -> None:
         "query_fingerprint": comparison["query_fingerprint"],
         "baseline_sample_count": comparison["baseline_sample_count"],
         "current_sample_count": comparison["current_sample_count"],
+        "measurement_group": comparison["current_measurement_group"],
         "baseline_execution_time_ms": comparison["baseline_execution_time_ms"],
         "current_execution_time_ms": comparison["current_execution_time_ms"],
         "execution_time_delta_ms": comparison["execution_time_delta_ms"],

@@ -35,6 +35,7 @@ def test_sqlite_store_persists_and_lists_baselines(tmp_path) -> None:
         normalized_sql="SELECT * FROM customers",
         plan=_snapshot(),
         sample_count=3,
+        measurement_group="warm_cache",
     )
     reopened = SQLiteBaselineStore(database_path)
 
@@ -44,6 +45,7 @@ def test_sqlite_store_persists_and_lists_baselines(tmp_path) -> None:
     assert loaded == created
     assert listed == [created]
     assert loaded.sample_count == 3
+    assert loaded.measurement_group == "warm_cache"
 
 
 def test_sqlite_store_rejects_unknown_baseline(tmp_path) -> None:
@@ -69,6 +71,7 @@ def test_sqlite_store_applies_retention_and_supports_delete(tmp_path) -> None:
             normalized_sql=f"SELECT {index}",
             plan=_snapshot(),
             sample_count=1,
+            measurement_group="unspecified",
         )
         for index in range(3)
     ]

@@ -680,6 +680,212 @@ a {
   text-decoration: underline;
 }
 
+.v2-section {
+  background: var(--paper-deep);
+  padding: 96px max(32px, calc((100vw - 1176px) / 2));
+}
+
+.v2-heading {
+  align-items: end;
+  display: grid;
+  gap: 56px;
+  grid-template-columns: 1.15fr 0.85fr;
+  margin-bottom: 44px;
+}
+
+.v2-heading h2 {
+  font-size: clamp(32px, 5vw, 56px);
+  font-weight: 620;
+  letter-spacing: -0.055em;
+  line-height: 1.02;
+  margin: 0;
+  max-width: 760px;
+}
+
+.v2-heading > p {
+  color: var(--ink-soft);
+  font-size: 15px;
+  line-height: 1.7;
+  margin: 0;
+}
+
+.v2-layout {
+  display: grid;
+  gap: 18px;
+  grid-template-columns: 320px minmax(0, 1fr);
+}
+
+.workload-list {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.workload-list button {
+  align-items: center;
+  background: rgba(255, 252, 245, 0.68);
+  border: 1px solid transparent;
+  border-radius: 14px;
+  color: var(--ink);
+  cursor: pointer;
+  display: grid;
+  gap: 13px;
+  grid-template-columns: 42px 1fr;
+  padding: 16px;
+  text-align: left;
+}
+
+.workload-list button:hover,
+.workload-list button.selected {
+  background: var(--card);
+  border-color: var(--green);
+}
+
+.workload-list button:focus-visible {
+  outline: 3px solid rgba(231, 168, 59, 0.5);
+  outline-offset: 2px;
+}
+
+.workload-list button > span:last-child {
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+  min-width: 0;
+}
+
+.workload-list strong {
+  font-size: 14px;
+}
+
+.workload-list small {
+  color: var(--ink-soft);
+  font-size: 11px;
+}
+
+.workload-rank {
+  align-items: center;
+  background: rgba(23, 95, 72, 0.1);
+  border-radius: 10px;
+  color: var(--green);
+  display: inline-flex;
+  font-family: var(--font-geist-mono), monospace;
+  font-size: 12px;
+  font-weight: 700;
+  height: 40px;
+  justify-content: center;
+  width: 40px;
+}
+
+.regression-card {
+  background: var(--card);
+  border: 1px solid var(--line);
+  border-radius: 20px;
+  box-shadow: 0 20px 50px rgba(65, 52, 31, 0.08);
+  min-width: 0;
+  padding: 28px;
+}
+
+.regression-topline {
+  align-items: flex-start;
+  display: flex;
+  justify-content: space-between;
+}
+
+.regression-topline h3 {
+  font-size: 27px;
+  letter-spacing: -0.04em;
+  margin: 0 0 18px;
+}
+
+.evidence-only {
+  background: #e8efe6;
+  border-radius: 999px;
+  color: var(--green-dark);
+  font-size: 11px;
+  font-weight: 750;
+  padding: 8px 11px;
+}
+
+.regression-card pre {
+  background: #16211c;
+  border-radius: 11px;
+  color: #dce7e0;
+  font-family: var(--font-geist-mono), monospace;
+  font-size: 11px;
+  line-height: 1.55;
+  margin: 0;
+  overflow-x: auto;
+  padding: 15px;
+}
+
+.parameter-note {
+  color: var(--ink-soft);
+  font-size: 11px;
+  margin: 8px 0 22px;
+}
+
+.comparison-metrics {
+  display: grid;
+  gap: 9px;
+  grid-template-columns: repeat(3, 1fr);
+}
+
+.comparison-metrics > div {
+  background: #f8f5ed;
+  border-radius: 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 7px;
+  padding: 14px;
+}
+
+.comparison-metrics span {
+  color: var(--ink-soft);
+  font-size: 10px;
+  text-transform: uppercase;
+}
+
+.comparison-metrics strong {
+  font-size: 16px;
+}
+
+.regression-result {
+  border-left: 3px solid;
+  margin-top: 18px;
+  padding: 14px 16px;
+}
+
+.regression-result strong {
+  font-size: 13px;
+}
+
+.regression-result p,
+.regression-result li {
+  font-size: 12px;
+  line-height: 1.55;
+}
+
+.regression-result ul {
+  margin: 9px 0 0;
+  padding-left: 18px;
+}
+
+.regression-found {
+  background: #fff0ed;
+  border-color: var(--red);
+  color: #7e3025;
+}
+
+.regression-clear {
+  background: #f1f4e9;
+  border-color: var(--green);
+  color: #405048;
+}
+
+.regression-clear p {
+  margin: 6px 0 0;
+}
+
 .explain-section {
   background: var(--green-dark);
   color: var(--white);
@@ -791,6 +997,15 @@ footer > span {
     row-gap: 40px;
   }
 
+  .v2-layout {
+    grid-template-columns: 1fr;
+  }
+
+  .workload-list {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+  }
+
   .steps article:nth-child(3) {
     border-left: 0;
     padding-left: 0;
@@ -844,9 +1059,34 @@ footer > span {
   }
 
   .fixture-grid,
+  .v2-heading,
   .result-grid,
   .section-heading,
   .steps {
+    grid-template-columns: 1fr;
+  }
+
+  .v2-section {
+    padding: 70px 20px;
+  }
+
+  .v2-heading {
+    gap: 20px;
+  }
+
+  .workload-list {
+    grid-template-columns: 1fr;
+  }
+
+  .regression-card {
+    padding: 20px;
+  }
+
+  .regression-topline {
+    gap: 14px;
+  }
+
+  .comparison-metrics {
     grid-template-columns: 1fr;
   }
 

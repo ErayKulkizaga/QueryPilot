@@ -14,11 +14,12 @@ This repository is the implementation of the seven-day MVP plan in
 [Release checklist](docs/release-checklist.md) ·
 [MVP closeout](docs/mvp-closeout.md)
 
-**Release:** `v1.0.0` technical MVP. The delivery package consists of the
-working source, automated evaluation, recorded smoke artefacts, screenshots,
-architecture documentation, and the technical presentation. A recorded demo
-video is intentionally not part of the release scope; `docs/demo-script.md`
-remains the reproducible live walkthrough.
+**Release:** `v2.0.0-beta.1` evidence workflow beta, built on the frozen
+`v1.0.0` technical MVP. V2 adds workload prioritization, reviewed
+representative-SQL handoff, measurement-grouped plan baselines, checked-in plan
+contracts, portable evidence reports, and a synthetic public regression
+showcase. A recorded demo video remains outside the release scope;
+`docs/demo-script.md` is the reproducible walkthrough.
 
 ![QueryPilot public demo showing a deterministic PostgreSQL plan diagnosis](artifacts/screenshots/querypilot-live-desktop.png)
 
@@ -29,12 +30,13 @@ FastAPI, Streamlit, local retrieval, and optional Foundry Local enrichment.
 The MVP is a safety-architecture demonstration, not an attempt to replace a
 general-purpose model or a DBA. Its differentiator is enforced behavior:
 evidence and known citations are required before a recommendation can exist.
-The planned version 2 direction is automated query triage and plan-regression
-detection using `pg_stat_statements`.
+Version 2 now demonstrates automated query triage and plan-regression detection
+using `pg_stat_statements` while keeping every recommendation behind plan
+evidence.
 
 ## Current milestone
 
-The first working slice includes:
+The current beta includes:
 
 - AST-based single-statement and read-only SQL validation
 - read-only PostgreSQL execution with a three-second statement timeout
@@ -57,8 +59,15 @@ The first working slice includes:
 - a least-privilege `pg_stat_statements` workload view and deterministic
   total-execution-time ranking API
 - persistent local plan baselines and same-query deterministic plan comparison
+- explicit cold-cache, warm-cache, and uncontrolled measurement groups that
+  cannot be compared across labels
+- strict baseline JSON export/import and shareable Markdown evidence reports
 - evidence-threshold regression alerts for execution time, root cost, and
   index-backed access changing to a sequential scan
+- checked-in named plan contracts verified against a fresh PostgreSQL fixture
+- an explicit workload-to-representative-SQL analysis and baseline handoff
+- a database-free V2 public showcase for workload ranking and regression
+  evidence
 - a GitHub Actions release gate covering dependency audits, Python tests,
   minimum coverage, security lint, live PostgreSQL checks, and public-demo tests
 
@@ -118,6 +127,10 @@ The workload endpoint returns ranking evidence only. It does not execute a
 captured statement, create an index, or produce an optimization recommendation.
 PostgreSQL-normalized `$1`/`$2` statements require representative parameter
 values before they can be submitted separately to plan analysis.
+The Streamlit priority view keeps this review step in one workflow: select a
+ranked query, replace every `$1`/`$2` placeholder with representative values,
+confirm local synthetic execution, analyze the plan, and save a reviewed
+baseline.
 
 The committed workload smoke run executed a sequential `orders` aggregate six
 times and a primary-key lookup fifteen times. The aggregate ranked first by
@@ -161,8 +174,15 @@ Baselines are stored locally in SQLite under `data/` by default and are not
 committed. Comparison is allowed only when the normalized SQL fingerprint
 matches. Up to nine structurally identical plan samples can be aggregated; the
 median timing and node metrics are used so one noisy run cannot dominate the
-result. Timing regressions must exceed both a ratio and an absolute millisecond
-threshold; plan differences never create a recommendation or execute SQL.
+result. Cold-cache, warm-cache, and uncontrolled samples carry separate labels
+and cannot be compared across groups. Timing regressions must exceed both a
+ratio and an absolute millisecond threshold; plan differences never create a
+recommendation or execute SQL.
+
+The Plan comparison screen can export a strict JSON baseline, import it under a
+new local ID, or download a Markdown evidence report. Imports validate the
+read-only SQL, its SHA-256 fingerprint, measurement group, and bounded plan
+shape; imported SQL is never executed.
 
 Delete a reviewed baseline explicitly:
 
@@ -263,6 +283,8 @@ Project delivery references:
   manual release gates
 - [`docs/v2-plan-regression.md`](docs/v2-plan-regression.md) — baseline,
   comparison, and regression evidence contract
+- [`docs/v2-beta.md`](docs/v2-beta.md) — V2 beta acceptance and remaining
+  boundaries
 
 Run the default release gate without starting Docker or Foundry Local:
 

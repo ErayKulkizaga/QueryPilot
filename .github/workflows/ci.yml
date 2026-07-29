@@ -54,6 +54,7 @@ jobs:
         run: |
           python -m scripts.workload_smoke --output "$RUNNER_TEMP/workload-smoke.json"
           python -m scripts.baseline_smoke
+          python -m scripts.plan_contract_check --output "$RUNNER_TEMP/plan-contract-result.json"
 
       - name: Stop PostgreSQL fixture
         if: always()

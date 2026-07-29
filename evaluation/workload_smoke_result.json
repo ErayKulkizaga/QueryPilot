@@ -1,5 +1,5 @@
 {
-  "captured_at": "2026-07-28T15:54:37.534818+00:00",
+  "captured_at": "2026-07-29T09:38:19.264470+00:00",
   "ranking_basis": "total_exec_time_ms",
   "recommendations_generated": false,
   "direct_pg_stat_statements_access_denied": true,
@@ -7,8 +7,8 @@
     "query_id": "6643245221593750324",
     "normalized_sql": "SELECT count(*) FROM orders WHERE total_amount > $1",
     "calls": 6,
-    "total_exec_time_ms": 195.325,
-    "mean_exec_time_ms": 32.554,
+    "total_exec_time_ms": 217.535,
+    "mean_exec_time_ms": 36.256,
     "shared_blocks_read": 1033,
     "temp_blocks_written": 0
   },

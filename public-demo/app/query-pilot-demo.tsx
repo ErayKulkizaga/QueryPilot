@@ -7,6 +7,10 @@ import {
   type Severity,
 } from "../lib/analyzer";
 import { DEMO_FIXTURES } from "../lib/fixtures";
+import {
+  regressionReasons,
+  SYNTHETIC_WORKLOAD,
+} from "../lib/v2-showcase";
 
 type InputMode = "samples" | "json";
 
@@ -108,6 +112,11 @@ export function QueryPilotDemo() {
     "Bir senaryo seçin ve analizi başlatın.",
   );
   const resultRef = useRef<HTMLDivElement>(null);
+  const [workloadId, setWorkloadId] = useState(SYNTHETIC_WORKLOAD[0].id);
+  const selectedWorkload =
+    SYNTHETIC_WORKLOAD.find((query) => query.id === workloadId) ??
+    SYNTHETIC_WORKLOAD[0];
+  const selectedRegressionReasons = regressionReasons(selectedWorkload);
 
   const inputJson = mode === "samples" ? activeFixture.json : customJson;
 
@@ -183,6 +192,9 @@ export function QueryPilotDemo() {
           </span>
           <a className="text-link" href="#nasıl-çalışır">
             Nasıl çalışır?
+          </a>
+          <a className="text-link" href="#v2-kanıt">
+            V2 kanıtı
           </a>
         </div>
       </header>
@@ -313,6 +325,88 @@ export function QueryPilotDemo() {
           )}
         </section>
       </div>
+
+      <section id="v2-kanıt" className="v2-section">
+        <div className="v2-heading">
+          <div>
+            <p className="eyebrow">V2 · Sentetik kanıt laboratuvarı</p>
+            <h2>Önce pahalı sorguyu bul. Sonra değişimi ölç.</h2>
+          </div>
+          <p>
+            Bu gösterim kayıtlı sentetik verilerle tamamen tarayıcıda çalışır.
+            Veritabanına bağlanmaz, SQL çalıştırmaz ve plan kanıtı olmadan öneri
+            üretmez.
+          </p>
+        </div>
+
+        <div className="v2-layout">
+          <nav className="workload-list" aria-label="Sentetik iş yükü sıralaması">
+            {SYNTHETIC_WORKLOAD.map((query) => (
+              <button
+                key={query.id}
+                type="button"
+                className={query.id === workloadId ? "selected" : ""}
+                onClick={() => setWorkloadId(query.id)}
+              >
+                <span className="workload-rank">#{query.rank}</span>
+                <span>
+                  <strong>{query.label}</strong>
+                  <small>
+                    {query.calls} çağrı · {query.totalTimeMs.toFixed(1)} ms toplam
+                  </small>
+                </span>
+              </button>
+            ))}
+          </nav>
+
+          <article className="regression-card" aria-live="polite">
+            <div className="regression-topline">
+              <div>
+                <p className="eyebrow">Seçili iş yükü adayı</p>
+                <h3>{selectedWorkload.label}</h3>
+              </div>
+              <span className="evidence-only">Öneri üretilmedi</span>
+            </div>
+            <pre>
+              <code>{selectedWorkload.normalizedSql}</code>
+            </pre>
+            <p className="parameter-note">
+              `$1` temsilî değer girilmeden yerel sürümde otomatik çalıştırılmaz.
+            </p>
+
+            <div className="comparison-metrics">
+              <div>
+                <span>Baseline</span>
+                <strong>{selectedWorkload.baselineTimeMs.toFixed(2)} ms</strong>
+              </div>
+              <div>
+                <span>Güncel</span>
+                <strong>{selectedWorkload.currentTimeMs.toFixed(2)} ms</strong>
+              </div>
+              <div>
+                <span>Ölçüm grubu</span>
+                <strong>Warm cache</strong>
+              </div>
+            </div>
+
+            {selectedRegressionReasons.length > 0 ? (
+              <div className="regression-result regression-found">
+                <strong>Kanıt eşiğini aşan regresyon bulundu.</strong>
+                <ul>
+                  {selectedRegressionReasons.map((reason) => (
+                    <li key={reason}>{reason}</li>
+                  ))}
+                </ul>
+              </div>
+            ) : (
+              <div className="regression-result regression-clear">
+                <strong>Tanımlı eşiklere göre regresyon bulunmadı.</strong>
+                <p>Küçük süre farkları tek başına uyarı üretmez.</p>
+              </div>
+            )}
+          </article>
+        </div>
+      </section>
 
       <section id="nasıl-çalışır" className="explain-section">
         <div className="section-heading">
