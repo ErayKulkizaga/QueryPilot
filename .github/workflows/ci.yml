@@ -51,10 +51,17 @@ jobs:
       - name: Run live workload and baseline checks
         env:
           QUERYPILOT_BASELINE_DATABASE_PATH: ${{ runner.temp }}/querypilot-baselines.sqlite3
+          QUERYPILOT_PILOT_DATABASE_URL: postgresql://querypilot_app:querypilot_app_dev@127.0.0.1:5432/querypilot
         run: |
           python -m scripts.workload_smoke --output "$RUNNER_TEMP/workload-smoke.json"
           python -m scripts.baseline_smoke
           python -m scripts.plan_contract_check --output "$RUNNER_TEMP/plan-contract-result.json"
+          python -m scripts.non_production_pilot \
+            contracts/pilot_queries.example.json \
+            --expected-database querypilot \
+            --output "$RUNNER_TEMP/non-production-pilot.json" \
+            --acknowledge-authorized-non-production \
+            --allow-explain-analyze
 
       - name: Install Chromium for the UI test
         run: python -m playwright install --with-deps chromium

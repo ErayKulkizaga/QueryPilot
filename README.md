@@ -286,6 +286,8 @@ Project delivery references:
   comparison, and regression evidence contract
 - [`docs/v2-beta.md`](docs/v2-beta.md) — V2 beta acceptance and remaining
   boundaries
+- [`docs/non-production-pilot.md`](docs/non-production-pilot.md) — guarded,
+  allowlisted non-production measurement and threshold calibration
 
 Run the default release gate without starting Docker or Foundry Local:
 
@@ -296,7 +298,8 @@ python -m scripts.release_check
 The release gate enforces at least 80% Python coverage and runs secret,
 dependency, lint, security-lint, build, and behavior checks. GitHub Actions
 additionally starts a fresh PostgreSQL fixture and verifies workload ranking,
-least-privilege access, and plan-baseline comparison.
+least-privilege access, guarded pilot measurement, plan-baseline comparison,
+and the real-browser Streamlit workflow.
 
 Run the complete API smoke test while PostgreSQL is available:
 

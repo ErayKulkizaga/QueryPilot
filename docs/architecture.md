@@ -145,6 +145,7 @@ ignored.
 | Submitted SQL | AST validation plus one-statement, read-only policy |
 | PostgreSQL | `SELECT`-only role, read-only transaction, statement timeout |
 | Workload statistics | Security-definer projection, SELECT/WITH filter, deterministic total-time ranking |
+| Non-production pilot | Explicit authorization, exact database match, non-privileged read-only role, query allowlist, dual opt-in for execution |
 | Plan baseline | Local SQLite record keyed by normalized-SQL fingerprint |
 | Regression alert | Deterministic timing, cost, and access-path evidence; no recommendation |
 | Recommendation | Display-only SQL; never applied automatically |

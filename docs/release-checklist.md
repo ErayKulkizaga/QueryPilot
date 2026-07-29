@@ -22,8 +22,9 @@ python -m scripts.release_check --live
 
 `--live` does not start or stop Docker; it only runs `scripts.api_smoke`.
 GitHub Actions separately starts a fresh PostgreSQL fixture, runs the workload
-permission/ranking smoke and the multi-sample baseline smoke, and always removes
-the fixture afterward.
+permission/ranking smoke, guarded pilot calibration, multi-sample baseline
+smoke, and real-browser Streamlit workflow, and always removes the fixture
+afterward.
 
 ## Manual release items
 
@@ -50,6 +51,9 @@ the fixture afterward.
 - [x] Fresh PostgreSQL workload and baseline smokes enforced in CI
 - [x] V2 workload prioritization preserves evidence-gated recommendations
 - [x] V2 live workload ranking and direct-access denial smoke recorded
+- [x] Guarded non-production pilot and threshold-calibration runner prepared
+- [x] Sanitized synthetic pilot calibration artefact recorded
+- [x] Real-browser Streamlit workflow enforced in CI
 - [x] Recorded video explicitly removed from the final acceptance scope
 - [x] Public source repository confirmed:
   [ErayKulkizaga/QueryPilot](https://github.com/ErayKulkizaga/QueryPilot)

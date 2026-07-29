@@ -1,8 +1,8 @@
 {
-  "audited_at_utc": "2026-07-29T09:49:35Z",
+  "audited_at_utc": "2026-07-29T16:27:52Z",
   "tracked_secret_scan": {
     "status": "passed",
-    "tracked_file_count": 145,
+    "tracked_file_count": 152,
     "finding_count": 0,
     "command": "python -m scripts.secret_scan"
   },
@@ -25,8 +25,8 @@
   },
   "python_test_coverage": {
     "status": "passed",
-    "test_count": 84,
-    "coverage_percent": 88.96,
+    "test_count": 93,
+    "coverage_percent": 88.76,
     "required_percent": 80.0
   },
   "live_postgresql_security": {
@@ -34,6 +34,9 @@
     "loopback_binding": true,
     "configurable_credentials": true,
     "direct_pg_stat_statements_access_denied": true,
+    "guarded_pilot_transaction_read_only": true,
+    "guarded_pilot_privileged_role_denied": true,
+    "guarded_pilot_credentials_recorded": false,
     "recommendations_generated_by_workload_or_comparison": false
   },
   "resolved_findings": [
@@ -64,6 +67,14 @@
     {
       "area": "portable plan baselines",
       "resolution": "Imports enforce a bounded strict schema, read-only SQL validation, a matching SHA-256 query fingerprint, known measurement groups, and never execute imported SQL."
+    },
+    {
+      "area": "non-production pilot",
+      "resolution": "The pilot requires explicit authorization, an exact database-name match, a non-privileged read-only role, allowlisted representative SELECT queries, timeouts, and a second opt-in before EXPLAIN ANALYZE."
+    },
+    {
+      "area": "browser workflow",
+      "resolution": "Chromium now exercises workload selection, explicit SQL approval, analysis, baseline storage, export visibility, and comparison in GitHub Actions."
     }
   ]
 }

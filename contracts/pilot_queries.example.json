@@ -1,0 +1,16 @@
+{
+  "schema_version": 1,
+  "target_label": "local-synthetic-fixture",
+  "measurement_group": "warm_cache",
+  "repetitions": 5,
+  "queries": [
+    {
+      "name": "orders-total-threshold",
+      "sql": "SELECT count(*) FROM orders WHERE total_amount > 250.00"
+    },
+    {
+      "name": "customer-primary-key-lookup",
+      "sql": "SELECT id, email, full_name FROM customers WHERE id = 17"
+    }
+  ]
+}

@@ -23,14 +23,13 @@ def test_workload_analysis_baseline_and_comparison(page: Page) -> None:
     expect(representative_sql).to_be_visible(timeout=15_000)
     representative_sql.fill(REPRESENTATIVE_SQL)
 
-    approval = page.get_by_label(
+    approval_text = (
         "SQL'i gözden geçirdim ve yalnızca yerel sentetik veritabanında "
-        "EXPLAIN ANALYZE ile çalıştırmayı onaylıyorum.",
-        exact=True,
+        "EXPLAIN ANALYZE ile çalıştırmayı onaylıyorum."
     )
-    # Streamlit renders a styled label over the native checkbox. Force targets
-    # the accessible input while still exercising the browser event path.
-    approval.check(force=True)
+    approval = page.get_by_label(approval_text, exact=True)
+    page.locator("label").filter(has_text=approval_text).click()
+    expect(approval).to_be_checked()
 
     analyze = page.get_by_role(
         "button",
