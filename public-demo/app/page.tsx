@@ -4,7 +4,7 @@ import { QueryPilotDemo } from "./query-pilot-demo";
 export const metadata: Metadata = {
   title: "QueryPilot Public Demo",
   description:
-    "PostgreSQL EXPLAIN JSON planlarını tarayıcıda, deterministik kurallarla analiz edin.",
+    "PostgreSQL planlarını analiz edin; sentetik V2 iş yükü ve regresyon kanıtlarını tarayıcıda inceleyin.",
 };
 
 export default function Home() {

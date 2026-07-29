@@ -35,5 +35,8 @@ test("server-renders the QueryPilot public demo shell", async () => {
   assert.match(html, /Hazır senaryolar/);
   assert.match(html, /EXPLAIN JSON/);
   assert.match(html, /Bir senaryo seçin ve analizi başlatın/);
+  assert.match(html, /V2 · Sentetik kanıt laboratuvarı/);
+  assert.match(html, /Öneri üretilmedi/);
+  assert.match(html, /Warm cache/);
   assert.doesNotMatch(html, /codex-preview|react-loading-skeleton/i);
 });

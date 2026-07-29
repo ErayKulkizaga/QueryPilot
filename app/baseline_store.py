@@ -34,6 +34,7 @@ class PlanBaseline:
     normalized_sql: str
     plan: PlanSnapshot
     sample_count: int
+    measurement_group: str
     created_at: datetime
 
 
@@ -73,6 +74,7 @@ class SQLiteBaselineStore:
                         normalized_sql TEXT NOT NULL,
                         plan_json TEXT NOT NULL,
                         sample_count INTEGER NOT NULL DEFAULT 1,
+                        measurement_group TEXT NOT NULL DEFAULT 'unspecified',
                         created_at TEXT NOT NULL
                     )
                     """
@@ -88,6 +90,14 @@ class SQLiteBaselineStore:
                         """
                         ALTER TABLE plan_baselines
                         ADD COLUMN sample_count INTEGER NOT NULL DEFAULT 1
+                        """
+                    )
+                if "measurement_group" not in columns:
+                    connection.execute(
+                        """
+                        ALTER TABLE plan_baselines
+                        ADD COLUMN measurement_group TEXT NOT NULL
+                        DEFAULT 'unspecified'
                         """
                     )
                 connection.execute(
@@ -114,6 +124,7 @@ class SQLiteBaselineStore:
             normalized_sql=row["normalized_sql"],
             plan=plan,
             sample_count=int(row["sample_count"]),
+            measurement_group=str(row["measurement_group"]),
             created_at=created_at,
         )
 
@@ -125,6 +136,7 @@ class SQLiteBaselineStore:
         normalized_sql: str,
         plan: PlanSnapshot,
         sample_count: int,
+        measurement_group: str = "unspecified",
     ) -> PlanBaseline:
         record = PlanBaseline(
             baseline_id=uuid4().hex,
@@ -133,6 +145,7 @@ class SQLiteBaselineStore:
             normalized_sql=normalized_sql,
             plan=plan,
             sample_count=sample_count,
+            measurement_group=measurement_group,
             created_at=datetime.now(UTC),
         )
         try:
@@ -146,8 +159,9 @@ class SQLiteBaselineStore:
                         normalized_sql,
                         plan_json,
                         sample_count,
+                        measurement_group,
                         created_at
-                    ) VALUES (?, ?, ?, ?, ?, ?, ?)
+                    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?)
                     """,
                     (
                         record.baseline_id,
@@ -160,6 +174,7 @@ class SQLiteBaselineStore:
                             sort_keys=True,
                         ),
                         record.sample_count,
+                        record.measurement_group,
                         record.created_at.isoformat(),
                     ),
                 )
@@ -185,7 +200,7 @@ class SQLiteBaselineStore:
                 row = connection.execute(
                     """
                     SELECT baseline_id, name, query_fingerprint, normalized_sql,
-                           plan_json, sample_count, created_at
+                           plan_json, sample_count, measurement_group, created_at
                     FROM plan_baselines
                     WHERE baseline_id = ?
                     """,
@@ -203,7 +218,7 @@ class SQLiteBaselineStore:
                 rows = connection.execute(
                     """
                     SELECT baseline_id, name, query_fingerprint, normalized_sql,
-                           plan_json, sample_count, created_at
+                           plan_json, sample_count, measurement_group, created_at
                     FROM plan_baselines
                     ORDER BY created_at DESC, baseline_id ASC
                     LIMIT ?

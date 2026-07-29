@@ -12,7 +12,7 @@ from app import __version__
 
 ROOT = Path(__file__).resolve().parents[1]
 PUBLIC_DEMO = ROOT / "public-demo"
-RELEASE_VERSION = "1.0.0"
+RELEASE_VERSION = "2.0.0-beta.1"
 
 REQUIRED_FILES = (
     ROOT / "README.md",
@@ -20,13 +20,16 @@ REQUIRED_FILES = (
     ROOT / "docs" / "demo-script.md",
     ROOT / "docs" / "release-checklist.md",
     ROOT / "docs" / "technical-spike.md",
+    ROOT / "docs" / "v2-beta.md",
     ROOT / "evaluation" / "results.json",
     ROOT / "evaluation" / "api_smoke_result.json",
     ROOT / "evaluation" / "api_scenario_smoke_result.json",
     ROOT / "evaluation" / "before_after_benchmark.json",
     ROOT / "evaluation" / "workload_smoke_result.json",
     ROOT / "evaluation" / "baseline_smoke_result.json",
+    ROOT / "evaluation" / "plan_contract_result.json",
     ROOT / "evaluation" / "security_audit.json",
+    ROOT / "contracts" / "plan_contracts.json",
     ROOT / "artifacts" / "QueryPilot_Local_Teknik_Sunum.pptx",
     ROOT / "artifacts" / "QueryPilot_Local_Teknik_Sunum.pdf",
     ROOT / "artifacts" / "screenshots" / "querypilot-live-desktop.png",

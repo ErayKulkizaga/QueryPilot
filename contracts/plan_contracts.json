@@ -1,0 +1,44 @@
+{
+  "schema_version": 1,
+  "contracts": [
+    {
+      "name": "v2-missing-customer-email-index",
+      "release": "v2",
+      "sql": "SELECT id, email, full_name FROM customers WHERE email = 'demo@example.com'",
+      "expected_issue_category": "potential_missing_index",
+      "expected_insufficient_context": false,
+      "required_nodes": [
+        {
+          "node_type": "Seq Scan",
+          "relation_name": "customers"
+        }
+      ],
+      "forbidden_nodes": [
+        {
+          "node_type": "Index Scan",
+          "relation_name": "customers"
+        }
+      ]
+    },
+    {
+      "name": "v2-healthy-primary-key-lookup",
+      "release": "v2",
+      "sql": "SELECT id, email, full_name FROM customers WHERE id = 17",
+      "expected_issue_category": "no_clear_issue",
+      "expected_insufficient_context": true,
+      "required_nodes": [
+        {
+          "node_type": "Index Scan",
+          "relation_name": "customers",
+          "index_name": "customers_pkey"
+        }
+      ],
+      "forbidden_nodes": [
+        {
+          "node_type": "Seq Scan",
+          "relation_name": "customers"
+        }
+      ]
+    }
+  ]
+}

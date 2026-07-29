@@ -23,6 +23,12 @@ class Severity(StrEnum):
     HIGH = "high"
 
 
+class MeasurementGroup(StrEnum):
+    UNSPECIFIED = "unspecified"
+    COLD_CACHE = "cold_cache"
+    WARM_CACHE = "warm_cache"
+
+
 class Citation(StrictModel):
     document_id: str
     title: str
@@ -103,6 +109,7 @@ class WorkloadQueryListResponse(StrictModel):
 class BaselineCreateRequest(StrictModel):
     analysis_ids: list[str] = Field(min_length=1, max_length=9)
     name: str = Field(min_length=1, max_length=100)
+    measurement_group: MeasurementGroup = MeasurementGroup.UNSPECIFIED
 
     @field_validator("analysis_ids")
     @classmethod
@@ -119,6 +126,8 @@ class BaselineCreateRequest(StrictModel):
         stripped = value.strip()
         if not stripped:
             raise ValueError("Baseline name cannot be blank.")
+        if "\n" in stripped or "\r" in stripped:
+            raise ValueError("Baseline name must be a single line.")
         return stripped
 
 
@@ -132,14 +141,52 @@ class PlanBaselineResponse(StrictModel):
     root_total_cost: float = Field(ge=0)
     node_count: int = Field(ge=1)
     sample_count: int = Field(ge=1, le=9)
+    measurement_group: MeasurementGroup
 
 
 class PlanBaselineListResponse(StrictModel):
     baselines: list[PlanBaselineResponse]
 
 
+class PortablePlanNode(StrictModel):
+    path: str = Field(min_length=1, max_length=100)
+    node_type: str = Field(min_length=1, max_length=100)
+    relation_name: str | None = Field(default=None, max_length=200)
+    index_name: str | None = Field(default=None, max_length=200)
+    total_cost: float = Field(ge=0)
+    actual_total_time_ms: float = Field(ge=0)
+    actual_rows: float = Field(ge=0)
+    actual_loops: float = Field(ge=0)
+
+
+class PortablePlan(StrictModel):
+    planning_time_ms: float = Field(ge=0)
+    execution_time_ms: float = Field(ge=0)
+    nodes: list[PortablePlanNode] = Field(min_length=1, max_length=500)
+
+
+class PlanBaselineExport(StrictModel):
+    schema_version: Literal[1] = 1
+    name: str = Field(min_length=1, max_length=100)
+    query_fingerprint: str = Field(pattern=r"^[0-9a-f]{64}$")
+    normalized_sql: str = Field(min_length=1, max_length=20_000)
+    measurement_group: MeasurementGroup
+    sample_count: int = Field(ge=1, le=9)
+    source_created_at: datetime
+    plan: PortablePlan
+
+    @field_validator("name")
+    @classmethod
+    def validate_export_name(cls, value: str) -> str:
+        stripped = value.strip()
+        if not stripped or "\n" in stripped or "\r" in stripped:
+            raise ValueError("Baseline name must be a non-empty single line.")
+        return stripped
+
+
 class BaselineComparisonRequest(StrictModel):
     analysis_ids: list[str] = Field(min_length=1, max_length=9)
+    measurement_group: MeasurementGroup = MeasurementGroup.UNSPECIFIED
 
     @field_validator("analysis_ids")
     @classmethod
@@ -171,6 +218,8 @@ class PlanComparisonResponse(StrictModel):
     query_fingerprint: str
     baseline_sample_count: int = Field(ge=1, le=9)
     current_sample_count: int = Field(ge=1, le=9)
+    baseline_measurement_group: MeasurementGroup
+    current_measurement_group: MeasurementGroup
     baseline_execution_time_ms: float = Field(ge=0)
     current_execution_time_ms: float = Field(ge=0)
     execution_time_delta_ms: float
