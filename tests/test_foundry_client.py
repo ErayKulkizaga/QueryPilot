@@ -19,6 +19,7 @@ class FakeModel:
         )
         self.embedding_data = [[0.1, 0.2]]
         self.chat_content = "accepted"
+        self.chat_tool_arguments: str | None = None
 
     def download(self, callback=None) -> None:
         self.download_count += 1
@@ -55,11 +56,25 @@ class FakeModel:
         model = self
 
         class ChatClient:
-            def complete_chat(self, _messages):
+            def complete_chat(self, _messages, tools=None):
+                tool_calls = []
+                content = model.chat_content
+                if tools and model.chat_tool_arguments is not None:
+                    content = None
+                    tool_calls = [
+                        SimpleNamespace(
+                            function=SimpleNamespace(
+                                arguments=model.chat_tool_arguments
+                            )
+                        )
+                    ]
                 return SimpleNamespace(
                     choices=[
                         SimpleNamespace(
-                            message=SimpleNamespace(content=model.chat_content)
+                            message=SimpleNamespace(
+                                content=content,
+                                tool_calls=tool_calls,
+                            )
                         )
                     ]
                 )
@@ -164,6 +179,27 @@ def test_foundry_client_rejects_empty_chat_response(monkeypatch) -> None:
 
     with pytest.raises(FoundryLocalError, match="empty chat response"):
         client.complete([{"role": "user", "content": "hello"}])
+
+
+def test_foundry_client_returns_tool_call_arguments(monkeypatch) -> None:
+    chat = FakeModel(cached=True)
+    chat.chat_tool_arguments = '{"summary": "grounded"}'
+    client = _client(
+        monkeypatch,
+        {"chat": chat, "embedding": FakeModel()},
+    )
+
+    result = client.complete(
+        [{"role": "user", "content": "hello"}],
+        tools=[
+            {
+                "type": "function",
+                "function": {"name": "submit_grounded_report"},
+            }
+        ],
+    )
+
+    assert result == '{"summary": "grounded"}'
 
 
 def test_foundry_client_rejects_unknown_model_alias(monkeypatch) -> None:

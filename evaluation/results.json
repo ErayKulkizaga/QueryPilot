@@ -11,8 +11,8 @@
     "generation_sample_count": 4,
     "accepted_generation_rate": 1.0,
     "response_citation_valid_rate": 1.0,
-    "generation_average_latency_ms": 20243,
-    "generation_p95_latency_ms": 30444
+    "generation_average_latency_ms": 48256,
+    "generation_p95_latency_ms": 55668
   },
   "results": [
     {
@@ -31,7 +31,7 @@
       ],
       "retrieval_hit_at_3": true,
       "generation_source": "foundry_local",
-      "generation_latency_ms": 30444,
+      "generation_latency_ms": 53497,
       "generation_validation_errors": [],
       "response_citations_valid": true
     },
@@ -91,7 +91,7 @@
       ],
       "retrieval_hit_at_3": true,
       "generation_source": "foundry_local",
-      "generation_latency_ms": 16503,
+      "generation_latency_ms": 39097,
       "generation_validation_errors": [],
       "response_citations_valid": true
     },
@@ -131,7 +131,7 @@
       ],
       "retrieval_hit_at_3": true,
       "generation_source": "foundry_local",
-      "generation_latency_ms": 16055,
+      "generation_latency_ms": 44764,
       "generation_validation_errors": [],
       "response_citations_valid": true
     },
@@ -171,7 +171,7 @@
       ],
       "retrieval_hit_at_3": true,
       "generation_source": "foundry_local",
-      "generation_latency_ms": 17971,
+      "generation_latency_ms": 55668,
       "generation_validation_errors": [],
       "response_citations_valid": true
     },

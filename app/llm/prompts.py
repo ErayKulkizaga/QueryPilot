@@ -2,114 +2,128 @@ import json
 
 from app.analysis.rule_engine import Finding
 from app.rag.retriever import RetrievedChunk
-from app.schemas import IssueCategory
 
-SYSTEM_PROMPT = """You are the explanation selection layer of QueryPilot Local.
-The application supplies approved sentences derived from deterministic rules.
-Retrieved sources are supporting context only.
+SYSTEM_PROMPT = """You are the grounded explanation layer of QueryPilot Local.
+The application has already diagnosed the PostgreSQL plan with deterministic
+rules. Explain that finding for a human by using only the supplied plan evidence
+and retrieved source chunks.
 
-Return exactly one JSON object and no Markdown.
+Call the submit_grounded_report tool exactly once. Do not write normal chat
+content or Markdown.
+Required shape:
+{
+  "summary": "grounded explanation",
+  "recommendation": "grounded next step",
+  "evidence_ids": ["evidence-1"],
+  "citation_ids": ["chunk-id"]
+}
+
 Rules:
-- Return only summary_sentence_id and recommendation_sentence_id.
-- Copy each ID exactly from the corresponding approved sentence list.
-- Never write, rewrite, paraphrase, or add explanatory text.
-- Do not output SQL, citations, facts, issue categories, severity, or plan evidence.
+- Write a concise, useful summary and recommendation in English.
+- Include all four keys exactly once. Do not return nested objects.
+- Both generated texts must be supported by the referenced evidence and sources.
+- Use only evidence_ids and citation_ids supplied by the application.
+- Do not invent metrics, object names, causes, citations, or SQL.
+- Do not change the diagnosis, severity, plan evidence, or recommendation SQL.
+- Do not claim that an index or configuration change is certainly beneficial.
+- Recommend review and plan comparison, not automatic application.
 """
 
-
-def build_approved_sentences(finding: Finding) -> dict[str, dict[str, str]]:
-    category_sentences = {
-        IssueCategory.POTENTIAL_MISSING_INDEX: {
-            "summary_context": (
-                "The selective filter makes the sequential scan a candidate "
-                "for index review."
+GENERATION_TOOLS = [
+    {
+        "type": "function",
+        "function": {
+            "name": "submit_grounded_report",
+            "description": (
+                "Submit a concise explanation grounded in the supplied plan "
+                "evidence and retrieved PostgreSQL sources."
             ),
-            "recommendation_context": (
-                "Review whether an index aligned with the filter reduces scanned "
-                "rows, then compare the new plan and write overhead."
-            ),
-        },
-        IssueCategory.EXPENSIVE_NESTED_LOOP: {
-            "summary_context": (
-                "Repeated execution of the inner plan can multiply the cost "
-                "of the nested loop."
-            ),
-            "recommendation_context": (
-                "Review join-key indexes, selectivity, and statistics, then compare "
-                "alternative plans without forcing a join type."
-            ),
-        },
-        IssueCategory.DISK_BASED_SORT: {
-            "summary_context": (
-                "Temporary disk use shows that the sort exceeded available working "
-                "memory for this operation."
-            ),
-            "recommendation_context": (
-                "First reduce the rows entering the sort and review ordered index "
-                "access; consider session-level memory tuning only after plan comparison."
-            ),
-        },
-        IssueCategory.CARDINALITY_MISESTIMATION: {
-            "summary_context": (
-                "The gap between estimated and observed rows can lead the planner "
-                "to choose an inefficient plan."
-            ),
-            "recommendation_context": (
-                "Refresh statistics and inspect skew or correlation before considering "
-                "higher statistics targets or extended statistics."
-            ),
+            "parameters": {
+                "type": "object",
+                "properties": {
+                    "summary": {
+                        "type": "string",
+                        "minLength": 20,
+                        "maxLength": 1_000,
+                    },
+                    "recommendation": {
+                        "type": "string",
+                        "minLength": 20,
+                        "maxLength": 1_000,
+                    },
+                    "evidence_ids": {
+                        "type": "array",
+                        "items": {"type": "string"},
+                        "minItems": 1,
+                        "maxItems": 10,
+                    },
+                    "citation_ids": {
+                        "type": "array",
+                        "items": {"type": "string"},
+                        "minItems": 1,
+                        "maxItems": 3,
+                    },
+                },
+                "required": [
+                    "summary",
+                    "recommendation",
+                    "evidence_ids",
+                    "citation_ids",
+                ],
+                "additionalProperties": False,
+            },
         },
     }
-    contextual = category_sentences.get(finding.category, {})
-    summary_sentences = {"summary_finding": finding.summary}
-    recommendation_sentences = {
-        "recommendation_finding": finding.recommendation
-    }
-    if contextual:
-        summary_sentences["summary_context"] = contextual["summary_context"]
-        recommendation_sentences["recommendation_context"] = contextual[
-            "recommendation_context"
-        ]
-    return {
-        "summary": summary_sentences,
-        "recommendation": recommendation_sentences,
-    }
+]
 
 
 def _generation_payload(
     finding: Finding,
     sources: list[RetrievedChunk],
 ) -> dict[str, object]:
-    approved_sentences = build_approved_sentences(finding)
+    evidence = [
+        {"evidence_id": f"evidence-{index}", "text": text}
+        for index, text in enumerate(finding.evidence, 1)
+    ]
     return {
         "deterministic_finding": {
             "issue_category": finding.category.value,
             "severity": finding.severity.value,
             "summary": finding.summary,
-            "plan_evidence": list(finding.evidence),
+            "plan_evidence": evidence,
             "recommendation": finding.recommendation,
             "recommendation_sql": finding.recommendation_sql,
         },
         "retrieved_sources": [
             {
+                "citation_id": source.chunk_id,
                 "document_id": source.document_id,
                 "title": source.title,
                 "section": source.section,
+                "text": source.text,
+                "source_url": source.source_url,
             }
             for source in sources
         ],
-        "approved_sentences": approved_sentences,
-        "selection_task": {
-            "allowed_summary_sentence_ids": list(
-                approved_sentences["summary"]
-            ),
-            "allowed_recommendation_sentence_ids": list(
-                approved_sentences["recommendation"]
-            ),
+        "grounding_contract": {
+            "allowed_evidence_ids": [
+                item["evidence_id"] for item in evidence
+            ],
+            "allowed_citation_ids": [source.chunk_id for source in sources],
+            "deterministic_fields_are_read_only": [
+                "issue_category",
+                "severity",
+                "plan_evidence",
+                "recommendation_sql",
+            ],
         },
         "required_output_example": {
-            "summary_sentence_id": "summary_context",
-            "recommendation_sentence_id": "recommendation_context",
+            "summary": "The observed plan evidence indicates ...",
+            "recommendation": (
+                "Review ... and compare the resulting plan ..."
+            ),
+            "evidence_ids": ["evidence-1"],
+            "citation_ids": [sources[0].chunk_id],
         },
     }
 
@@ -147,8 +161,8 @@ def build_repair_messages(
                 "content": (
                     "Your previous output was rejected for these reasons:\n- "
                     + "\n- ".join(validation_errors)
-                    + "\nReturn one corrected JSON object containing only exact IDs "
-                    "from the approved sentence lists."
+                    + "\nReturn one corrected JSON object. Keep the explanation "
+                    "grounded and use only the supplied evidence and citation IDs."
                 ),
             },
         ]

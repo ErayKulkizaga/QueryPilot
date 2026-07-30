@@ -11,7 +11,10 @@ free-form PostgreSQL advice. It demonstrates a stricter trust boundary:
 - Deterministic rules own the diagnosis, severity, evidence, recommendation
   SQL, no-answer decision, and citation allowlist.
 - No recommendation is produced without a supported rule-engine finding.
-- The optional local model can select only application-approved sentences.
+- The optional local model generates human-facing prose only from supplied
+  plan evidence and retrieved PostgreSQL chunks.
+- Generated prose must reference known evidence and citation IDs; invalid
+  output falls back without changing the deterministic result.
 - The public demo runs entirely in the browser and never executes SQL.
 
 This makes the MVP a portfolio-quality safety architecture and a foundation for
@@ -70,8 +73,9 @@ source document; this closeout records the final scope decision.
 - No-answer decisions: 12/12.
 - Retrieval Hit@3: 9/9 applicable cases.
 - Valid response citations: 4/4 generation samples.
-- Accepted 1.5B sentence selections: 4/4.
-- Optional CPU selection average: 20.2 seconds.
+- Accepted grounded Foundry generations: 4/4.
+- Valid retrieved citations: 4/4.
+- Optional CPU generation average: 48.3 seconds; p95: 55.7 seconds.
 - Synthetic missing-index benchmark median:
   - before: 1.671 ms, sequential scan;
   - after: 0.074 ms, index scan.

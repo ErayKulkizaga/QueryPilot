@@ -1,4 +1,5 @@
 import json
+import re
 from collections.abc import Callable
 from dataclasses import dataclass
 from time import perf_counter
@@ -8,7 +9,7 @@ from pydantic import ValidationError
 
 from app.analysis.rule_engine import RuleAnalysis, build_fallback_report
 from app.llm.prompts import (
-    build_approved_sentences,
+    GENERATION_TOOLS,
     build_generation_messages,
     build_repair_messages,
 )
@@ -20,17 +21,27 @@ from app.schemas import (
     IssueCategory,
 )
 
-ApprovedSentences = dict[str, dict[str, str]]
 _PRIMARY_SOURCE_BY_CATEGORY = {
     IssueCategory.POTENTIAL_MISSING_INDEX: "pg-indexes-01",
     IssueCategory.EXPENSIVE_NESTED_LOOP: "pg-joins-01",
     IssueCategory.DISK_BASED_SORT: "pg-sorting-01",
     IssueCategory.CARDINALITY_MISESTIMATION: "pg-statistics-01",
 }
+_NUMBER_PATTERN = re.compile(r"(?<![\w.-])\d+(?:[.,]\d+)?%?")
+_CODE_TOKEN_PATTERN = re.compile(r"`([^`]+)`")
+_SQL_ACTION_PATTERN = re.compile(
+    r"\b(?:ALTER|CREATE|DELETE|DROP|INSERT|MERGE|TRUNCATE|UPDATE)\b",
+    re.IGNORECASE,
+)
 
 
 class ChatCompleter(Protocol):
-    def complete(self, messages: list[dict[str, str]]) -> str: ...
+    def complete(
+        self,
+        messages: list[dict[str, str]],
+        *,
+        tools: list[dict[str, object]] | None = None,
+    ) -> str: ...
 
 
 @dataclass(frozen=True, slots=True)
@@ -63,38 +74,103 @@ def _extract_json(raw: str) -> dict[str, object]:
 
 def _validate_explanation(
     explanation: GeneratedExplanation,
-    approved_sentences: ApprovedSentences,
+    *,
+    analysis: RuleAnalysis,
+    sources: list[RetrievedChunk],
 ) -> list[str]:
     errors: list[str] = []
-    if explanation.summary_sentence_id not in approved_sentences["summary"]:
-        errors.append("summary_sentence_id is not in the approved sentence list")
-    if (
-        explanation.recommendation_sentence_id
-        not in approved_sentences["recommendation"]
-    ):
+    allowed_evidence_ids = {
+        f"evidence-{index}"
+        for index, _ in enumerate(analysis.primary.evidence, 1)
+    }
+    allowed_citation_ids = {source.chunk_id for source in sources}
+    grounding_text = "\n".join(
+        [
+            analysis.primary.summary,
+            analysis.primary.recommendation,
+            analysis.primary.recommendation_sql or "",
+            *analysis.primary.evidence,
+            *(source.text for source in sources),
+        ]
+    )
+    allowed_numbers = set(_NUMBER_PATTERN.findall(grounding_text))
+
+    unknown_evidence = set(explanation.evidence_ids) - allowed_evidence_ids
+    if unknown_evidence:
         errors.append(
-            "recommendation_sentence_id is not in the approved sentence list"
+            "explanation uses unknown evidence IDs: "
+            + ", ".join(sorted(unknown_evidence))
         )
+    unknown_citations = set(explanation.citation_ids) - allowed_citation_ids
+    if unknown_citations:
+        errors.append(
+            "explanation uses unknown citation IDs: "
+            + ", ".join(sorted(unknown_citations))
+        )
+    if len(set(explanation.evidence_ids)) != len(explanation.evidence_ids):
+        errors.append("explanation repeats evidence IDs")
+    if len(set(explanation.citation_ids)) != len(explanation.citation_ids):
+        errors.append("explanation repeats citation IDs")
+
+    for field_name in ("summary", "recommendation"):
+        text = getattr(explanation, field_name)
+        novel_numbers = set(_NUMBER_PATTERN.findall(text)) - allowed_numbers
+        if novel_numbers:
+            errors.append(
+                f"{field_name} invents numeric values: "
+                + ", ".join(sorted(novel_numbers))
+            )
+        if _SQL_ACTION_PATTERN.search(text):
+            errors.append(
+                f"{field_name} contains SQL-like change instructions"
+            )
+        if "http://" in text.lower() or "https://" in text.lower():
+            errors.append(f"{field_name} contains an untrusted URL")
+        unknown_code_tokens = {
+            token
+            for token in _CODE_TOKEN_PATTERN.findall(text)
+            if token.casefold() not in grounding_text.casefold()
+        }
+        if unknown_code_tokens:
+            errors.append(
+                f"{field_name} invents code identifiers: "
+                + ", ".join(sorted(unknown_code_tokens))
+            )
     return errors
 
 
 def _parse_and_validate(
     raw: str,
-    approved_sentences: ApprovedSentences,
+    *,
+    analysis: RuleAnalysis,
+    sources: list[RetrievedChunk],
 ) -> tuple[GeneratedExplanation | None, list[str]]:
     try:
         payload = _extract_json(raw)
         explanation = GeneratedExplanation.model_validate(payload)
     except (ValueError, json.JSONDecodeError, ValidationError) as exc:
         return None, [f"structured output validation failed: {exc}"]
-    errors = _validate_explanation(explanation, approved_sentences)
+    errors = _validate_explanation(
+        explanation,
+        analysis=analysis,
+        sources=sources,
+    )
     return (explanation if not errors else None), errors
 
 
-def _deterministic_citations(sources: list[RetrievedChunk]) -> list[Citation]:
+def _deterministic_citations(
+    sources: list[RetrievedChunk],
+    *,
+    selected_chunk_ids: set[str] | None = None,
+) -> list[Citation]:
     citations: list[Citation] = []
     seen: set[tuple[str, str, str]] = set()
     for source in sources:
+        if (
+            selected_chunk_ids is not None
+            and source.chunk_id not in selected_chunk_ids
+        ):
+            continue
         key = (source.document_id, source.title, source.section)
         if key in seen:
             continue
@@ -128,21 +204,20 @@ def _assemble_report(
     analysis: RuleAnalysis,
     sources: list[RetrievedChunk],
     explanation: GeneratedExplanation,
-    approved_sentences: ApprovedSentences,
 ) -> AnalysisReport:
     finding = analysis.primary
+    selected_chunk_ids = set(explanation.citation_ids)
     return AnalysisReport(
         issue_category=finding.category,
         severity=finding.severity,
-        summary=approved_sentences["summary"][
-            explanation.summary_sentence_id
-        ],
+        summary=explanation.summary,
         plan_evidence=list(finding.evidence),
-        recommendation=approved_sentences["recommendation"][
-            explanation.recommendation_sentence_id
-        ],
+        recommendation=explanation.recommendation,
         recommendation_sql=finding.recommendation_sql,
-        citations=_deterministic_citations(sources),
+        citations=_deterministic_citations(
+            sources,
+            selected_chunk_ids=selected_chunk_ids,
+        ),
         insufficient_context=False,
     )
 
@@ -223,11 +298,11 @@ class GroundedReportGenerator:
                 ),
             )
 
-        approved_sentences = build_approved_sentences(analysis.primary)
         started = self._clock()
         try:
             first_output = self._client.complete(
-                build_generation_messages(analysis.primary, supported_sources)
+                build_generation_messages(analysis.primary, supported_sources),
+                tools=GENERATION_TOOLS,
             )
         except Exception as exc:
             return GenerationResult(
@@ -243,7 +318,8 @@ class GroundedReportGenerator:
 
         explanation, errors = _parse_and_validate(
             first_output,
-            approved_sentences,
+            analysis=analysis,
+            sources=supported_sources,
         )
         first_attempt_seconds = self._clock() - started
         if explanation is not None:
@@ -252,7 +328,6 @@ class GroundedReportGenerator:
                     analysis=analysis,
                     sources=supported_sources,
                     explanation=explanation,
-                    approved_sentences=approved_sentences,
                 ),
                 source="foundry_local",
                 repair_attempted=False,
@@ -284,7 +359,8 @@ class GroundedReportGenerator:
                     supported_sources,
                     invalid_output=first_output,
                     validation_errors=errors,
-                )
+                ),
+                tools=GENERATION_TOOLS,
             )
         except Exception as exc:
             return GenerationResult(
@@ -303,7 +379,8 @@ class GroundedReportGenerator:
 
         repaired_explanation, repair_errors = _parse_and_validate(
             repaired_output,
-            approved_sentences,
+            analysis=analysis,
+            sources=supported_sources,
         )
         if repaired_explanation is not None:
             return GenerationResult(
@@ -311,7 +388,6 @@ class GroundedReportGenerator:
                     analysis=analysis,
                     sources=supported_sources,
                     explanation=repaired_explanation,
-                    approved_sentences=approved_sentences,
                 ),
                 source="foundry_local",
                 repair_attempted=True,

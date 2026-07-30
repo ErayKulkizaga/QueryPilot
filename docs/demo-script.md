@@ -51,17 +51,17 @@ Point to the report fields in order:
 
 Click the optional enrichment action.
 
-Show the PostgreSQL documentation citation and the selected explanation
-sentences.
+Show the PostgreSQL documentation citation and the generated explanation.
 
-> Retrieval may supply only known local documents. The model cannot write the
-> evidence, SQL, category, severity, or citation. It returns two sentence IDs
-> from an application-owned list. Unknown IDs, extra prose, invented citations,
-> and malformed JSON are rejected. A slow invalid response skips repair and
-> falls back immediately.
+> Retrieval supplies local PostgreSQL source chunks. Foundry Local writes the
+> human-facing summary and recommendation, but must reference exact plan
+> evidence and retrieved chunk IDs. The model cannot change category, severity,
+> raw evidence, recommendation SQL, or the no-answer decision. Unknown IDs,
+> invented metrics, SQL-like instructions, and malformed output are rejected.
 
-Mention that `qwen2.5-1.5b` passed 4/4 sentence-selection cases but averaged
-20.2 seconds on CPU, which is why enrichment is not on the primary path.
+Mention the current accepted-generation rate and latency from
+`evaluation/results.json`. Enrichment remains separate from the primary path
+because local CPU inference is slow.
 
 ## 03:10–04:00 — Apply the index manually
 
@@ -98,8 +98,8 @@ Show the evaluation summary:
 - 9/9 retrieval Hit@3 cases;
 - 4/4 valid response citations.
 
-Show the final slide with the measured before/after plan, the narrow MVP
-limitations, and tool-calling v2 as future work.
+Show the final slide with the measured before/after plan, grounded Foundry tool
+calling, and the narrow MVP limitations.
 
 Close with the limitations:
 

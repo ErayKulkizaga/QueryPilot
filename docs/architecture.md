@@ -5,7 +5,7 @@ QueryPilot Local has two deliberately separate surfaces:
 1. **Local engineering runtime** — executes a validated read-only query against
    the synthetic PostgreSQL database, analyzes the real JSON execution plan,
    and can optionally enrich the deterministic report with local retrieval and
-   sentence selection.
+   evidence-grounded natural-language generation.
 2. **Public portfolio demo** — accepts only synthetic fixtures or pasted
    `EXPLAIN (FORMAT JSON)` output and runs the deterministic analyzer entirely
    in the browser.
@@ -36,9 +36,9 @@ flowchart LR
 
     D -->|optional user action| E["Enrichment endpoint"]
     E --> K["Local knowledge index"]
-    K --> F["Foundry Local sentence selector"]
-    F --> G["Strict schema and allowlist gate"]
-    G -->|accepted sentence IDs only| U
+    K --> F["Foundry Local grounded report tool"]
+    F --> G["Evidence and citation integrity gate"]
+    G -->|accepted grounded prose| U
     G -->|invalid, slow, or unknown output| D
 ```
 
@@ -111,15 +111,18 @@ primary path:
 
 - retrieves category-supporting chunks from six local PostgreSQL documents;
 - exposes citations only from the application-owned category allowlist;
-- asks the local chat model to select two application-authored sentence IDs;
-- rejects unknown IDs, extra fields, malformed JSON, model-authored prose, and
-  unsupported citations;
+- supplies the retrieved chunk text and deterministic plan evidence to the
+  local chat model;
+- asks the model to generate a concise summary and recommendation through a
+  four-field Foundry tool call;
+- rejects unknown evidence/citation IDs, invented numbers, SQL-like change
+  instructions, untrusted URLs, extra fields, and malformed output;
 - attempts repair only when the first invalid response finishes within the
   configured cutoff, otherwise returning the deterministic fallback directly.
 
-The language model cannot create technical facts, recommendation SQL, evidence,
-or citations. It can only choose among sentences already approved by the
-application.
+The language model writes the human-facing prose, but cannot change category,
+severity, recommendation SQL, raw plan evidence, or no-answer state. Citations
+are assembled from the exact retrieved chunk IDs accepted by the validator.
 
 ## Public demo runtime
 
@@ -151,7 +154,7 @@ ignored.
 | Recommendation | Display-only SQL; never applied automatically |
 | Plan evidence | Derived from normalized plan nodes, never from the model |
 | Retrieval | Local index and known document IDs |
-| Model response | Two allowlisted sentence IDs under a strict schema |
+| Model response | Generated prose bound to known evidence and retrieved chunk IDs |
 | Citations | Application-owned, category-specific allowlist |
 | Public input | JSON only, 200 KB, at most 250 plan nodes |
 
@@ -163,8 +166,9 @@ On the committed 12-scenario fixture set:
 - no-answer accuracy: 12/12;
 - retrieval Hit@3: 9/9 applicable cases;
 - valid response citations: 4/4 generation samples;
-- `qwen2.5-1.5b` accepted sentence selections: 4/4;
-- average optional selection latency on CPU: 20,243 ms.
+- `qwen2.5-1.5b` accepted grounded generations: 4/4;
+- average optional generation latency on CPU: 48,256 ms;
+- generation p95 latency on CPU: 55,668 ms.
 
 The committed synthetic missing-index benchmark uses seven repetitions. Its
 latest observed medians were 1.671 ms for the sequential scan and 0.074 ms for

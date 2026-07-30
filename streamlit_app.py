@@ -128,7 +128,10 @@ def _delete(path: str, timeout: float) -> None:
 def _render_report(report: dict[str, Any], *, enriched: bool) -> None:
     source = report["report_source"]
     if enriched and source == "foundry_local":
-        st.success("Yerel model onaylı açıklama cümlelerini seçti.")
+        st.success(
+            "Foundry Local, plan kanıtı ve RAG kaynaklarından doğrulanan "
+            "açıklamayı üretti."
+        )
     elif enriched:
         st.info(
             "AI çıktısı kabul edilmedi; kanıta dayalı güvenli rapor korunuyor."
@@ -306,14 +309,15 @@ def _render_analysis_workspace() -> None:
 
     if analysis["enrichment_available"]:
         st.divider()
-        st.subheader("İsteğe bağlı yerel açıklama seçimi")
+        st.subheader("Yerel AI + RAG açıklaması")
         st.caption(
-            "Model yeni teknik metin yazamaz; yalnızca kural motorunun önceden "
-            "onayladığı açıklama cümlelerini seçebilir. Geçersiz seçim reddedilir."
+            "Foundry Local, yalnızca kural motorunun plan kanıtlarını ve yerel "
+            "RAG ile getirilen PostgreSQL kaynaklarını kullanarak doğal dilli "
+            "açıklama üretir. Bilinmeyen kanıt, sayı veya kaynak reddedilir."
         )
-        if st.button("Onaylı açıklamayı seç", width="stretch"):
+        if st.button("AI açıklaması üret", width="stretch"):
             with st.spinner(
-                "Yerel model güvenli cümle havuzundan seçim yapıyor…"
+                "Yerel model plan kanıtı ve RAG kaynaklarıyla açıklama üretiyor…"
             ):
                 try:
                     st.session_state["enrichment"] = _post(

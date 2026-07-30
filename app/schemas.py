@@ -59,8 +59,18 @@ class AnalysisReport(StrictModel):
 
 
 class GeneratedExplanation(StrictModel):
-    summary_sentence_id: str = Field(min_length=1, max_length=80)
-    recommendation_sentence_id: str = Field(min_length=1, max_length=80)
+    summary: str = Field(min_length=20, max_length=1_000)
+    recommendation: str = Field(min_length=20, max_length=1_000)
+    evidence_ids: list[str] = Field(min_length=1, max_length=10)
+    citation_ids: list[str] = Field(min_length=1, max_length=3)
+
+    @field_validator("summary", "recommendation")
+    @classmethod
+    def validate_text(cls, value: str) -> str:
+        text = " ".join(value.split())
+        if not text:
+            raise ValueError("Generated explanation text cannot be blank.")
+        return text
 
 
 class AnalysisResponse(AnalysisReport):

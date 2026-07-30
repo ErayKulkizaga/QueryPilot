@@ -65,27 +65,26 @@ cases before retrieval metrics are used in the presentation or CV.
 
 ## Grounded generation result
 
-The first full-report contract required the model to reproduce every structured
-field. Two invalid attempts produced a safe fallback but made the complete API
-request take 42,978 ms. Reducing the contract to two prose fields improved
-latency, but a live UI test exposed a semantic contradiction that passed the
-numeric and schema checks. Free-form model prose was therefore removed.
+The sentence-ID experiment was superseded by a real grounded-generation
+contract. Foundry Local now calls `submit_grounded_report` with four fields:
 
-The final contract accepts only:
+- `summary`
+- `recommendation`
+- `evidence_ids`
+- `citation_ids`
 
-- `summary_sentence_id`
-- `recommendation_sentence_id`
+The model receives deterministic plan evidence and the text of
+category-supporting chunks retrieved by local embeddings. It writes the
+human-facing summary and recommendation, but category, severity, raw evidence,
+recommendation SQL, and no-answer state remain application-owned.
 
-Both values must be exact IDs from category-specific sentences authored by the
-application. The model cannot write or rewrite displayed text. Unknown IDs,
-extra fields, model-authored text, and malformed JSON are rejected.
+The validator rejects unknown evidence or chunk IDs, duplicate IDs, invented
+numbers, unknown backticked identifiers, untrusted URLs, SQL-like change
+instructions, extra fields, and malformed tool arguments. Citations are built
+only from accepted retrieved chunk IDs. A known but category-irrelevant
+document is not passed to generation.
 
-Retrieved citations are attached only when their document ID is the configured
-primary source for the detected category. A known but irrelevant retrieved
-document is not cited. The rule engine remains the source of category,
-severity, evidence, recommendation SQL, and the allowed sentence set.
-
-A repair is attempted only when the first invalid selection completes within
+A repair is attempted only when the first invalid response completes within
 eight seconds. Otherwise the service immediately returns the deterministic
 fallback.
 
@@ -108,28 +107,29 @@ categories plus healthy and edge-case no-answer plans. Results:
 - rule diagnosis accuracy: 100% (12/12)
 - no-answer accuracy: 100% (12/12)
 - retrieval Hit@3: 100% (9/9 applicable cases)
-- valid response citations: 100% (4/4 selection samples)
+- accepted grounded generations: 100% (4/4 generation samples)
+- valid response citations: 100% (4/4 generation samples)
 
-The security design worked as intended: retrieval supplied only known sources,
-the model could not create or select citations, and all invalid selections fell
-back to the evidence-backed report.
+The security design worked as intended: retrieval supplied only known source
+chunks, all four real model generations passed the grounding contract, and
+invalid synthetic outputs fell back to the evidence-backed report.
 
-## Chat model comparison
+## Grounded model measurement
 
-The same four sentence-selection cases were run with both local chat models:
+The current four-case grounded-generation evaluation used
+`qwen2.5-1.5b`:
 
-| Metric | `qwen2.5-0.5b` | `qwen2.5-1.5b` |
-| --- | ---: | ---: |
-| Accepted selections | 1/4 | 4/4 |
-| Valid response citations | 4/4 | 4/4 |
-| Average selection latency | 12,633 ms | 20,243 ms |
-| Selection p95 latency | 24,104 ms | 30,444 ms |
+| Metric | Result |
+| --- | ---: |
+| Accepted grounded generations | 4/4 |
+| Valid retrieved citations | 4/4 |
+| Average generation latency | 48,256 ms |
+| Generation p95 latency | 55,668 ms |
 
-The 1.5B model is the default optional enrichment model. It adds roughly 1 GB
-of local download size and remains too slow for the primary response path, but
-its sentence-selection reliability is materially better than the 0.5B
-candidate. Because displayed text comes from the application-owned sentence
-set, selection cannot introduce a new plan claim.
+The previous 0.5B/1.5B sentence-selection comparison remains historical and is
+not directly comparable to this more demanding prose-generation task. The
+1.5B model remains outside the primary response path because CPU generation is
+slow, not because it is absent from the product.
 
 ## Public demo architecture
 

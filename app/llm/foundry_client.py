@@ -118,6 +118,7 @@ class FoundryLocalClient:
         self,
         messages: list[dict[str, str]],
         *,
+        tools: list[dict[str, object]] | None = None,
         download: bool = False,
         progress_callback: Callable[[float], None] | None = None,
     ) -> str:
@@ -127,11 +128,20 @@ class FoundryLocalClient:
                 download=download,
                 progress_callback=progress_callback,
             )
-            response = model.get_chat_client().complete_chat(messages)
-            content = response.choices[0].message.content
-            if not content:
-                raise FoundryLocalError("Foundry Local returned an empty chat response.")
-            return content
+            response = model.get_chat_client().complete_chat(
+                messages,
+                tools=tools,
+            )
+            message = response.choices[0].message
+            if message.tool_calls:
+                if len(message.tool_calls) != 1:
+                    raise FoundryLocalError(
+                        "Foundry Local returned an unexpected number of tool calls."
+                    )
+                return message.tool_calls[0].function.arguments
+            if message.content:
+                return message.content
+            raise FoundryLocalError("Foundry Local returned an empty chat response.")
         except FoundryLocalError:
             raise
         except Exception as exc:
@@ -148,4 +158,3 @@ class FoundryLocalClient:
 
     def __exit__(self, *_: object) -> None:
         self.close()
-
