@@ -12,7 +12,7 @@ from app import __version__
 
 ROOT = Path(__file__).resolve().parents[1]
 PUBLIC_DEMO = ROOT / "public-demo"
-RELEASE_VERSION = "2.0.0-beta.1"
+RELEASE_VERSION = "2.0.0-beta.2"
 
 REQUIRED_FILES = (
     ROOT / "README.md",
