@@ -14,19 +14,24 @@ This repository is the implementation of the seven-day MVP plan in
 [Release checklist](docs/release-checklist.md) ·
 [MVP closeout](docs/mvp-closeout.md)
 
-**Release:** `v2.0.0-beta.2` grounded AI and evidence workflow beta, built on the frozen
-`v1.0.0` technical MVP. V2 adds workload prioritization, reviewed
+**Release candidate:** `v2.0.0-beta.3`, built on the frozen `v1.0.0`
+technical MVP and the tagged `v2.0.0-beta.2` grounded-AI release. V2 adds
+workload prioritization, reviewed
 representative-SQL handoff, measurement-grouped plan baselines, checked-in plan
-contracts, portable evidence reports, and a synthetic public regression
-showcase. A recorded demo video remains outside the release scope;
+contracts, portable evidence reports, a synthetic public regression showcase,
+and optional evidence-grounded AI + RAG explanation in the public demo. A
+recorded demo video remains outside the release scope;
 `docs/demo-script.md` is the reproducible walkthrough.
 
 ![QueryPilot public demo showing a deterministic PostgreSQL plan diagnosis](artifacts/screenshots/querypilot-live-desktop.png)
 
 The public demo is intentionally database-free: pasted `EXPLAIN (FORMAT JSON)`
-plans are analyzed inside the browser. The full local runtime adds PostgreSQL,
-FastAPI, Streamlit, local embedding retrieval, and evidence-grounded Foundry
-Local report generation.
+plans are analyzed inside the browser. When a visitor explicitly requests an
+AI explanation, only the short deterministic finding and its category-selected
+PostgreSQL knowledge chunk are sent to a server-side Gemini free-tier model.
+The complete plan is not transmitted. The full local runtime adds PostgreSQL,
+FastAPI, Streamlit, semantic embedding retrieval, and evidence-grounded
+Foundry Local report generation without a cloud model.
 
 The MVP is a safety-architecture demonstration, not an attempt to replace a
 general-purpose model or a DBA. Its differentiator is enforced behavior:
@@ -56,7 +61,12 @@ The current beta includes:
 - a Streamlit interface for sample scenarios and custom read-only SQL
 - a 12-scenario rule, no-answer, retrieval, and generation evaluation
 - a database-free public demo that analyzes sample or pasted EXPLAIN JSON
-  entirely in the browser
+  entirely in the browser and optionally requests a grounded cloud-AI
+  explanation
+- a server-only public AI credential, bounded evidence payload, same-origin
+  endpoint, 15-second timeout, and deterministic fallback
+- category-selected public RAG chunks plus strict evidence/citation ID,
+  numeric-integrity, URL, identifier, and SQL-action validation
 - a least-privilege `pg_stat_statements` workload view and deterministic
   total-execution-time ranking API
 - persistent local plan baselines and same-query deterministic plan comparison
@@ -224,10 +234,18 @@ deterministic evidence.
 
 ## Public demo mode
 
-The `public-demo/` site is the shareable portfolio surface. It does not connect
-to PostgreSQL, execute SQL, call a language model, or transmit pasted plan
-content to an application API. Its TypeScript analyzer runs in the browser and
+The `public-demo/` site is the shareable portfolio surface. It never connects
+to PostgreSQL or executes SQL. Its TypeScript analyzer runs in the browser and
 supports the same four MVP issue categories plus the no-answer path.
+
+For a supported finding, the visitor can separately request an AI + RAG
+explanation. The browser sends only the deterministic category, severity,
+summary, and short evidence list to the same-origin Worker endpoint. The
+Worker selects a category-owned PostgreSQL knowledge chunk, calls Gemini with a
+server-only key, and rejects unknown evidence/citation IDs, invented numbers,
+URLs, identifiers, SQL change instructions, or malformed JSON. A rejected,
+timed-out, unavailable, or quota-limited model response never replaces the
+deterministic result.
 
 ```powershell
 Set-Location public-demo
@@ -238,6 +256,17 @@ npm run dev
 The public input boundary accepts at most 200 KB of JSON and 250 plan nodes.
 Citations are selected from a category-specific PostgreSQL documentation
 allowlist; citation fields supplied inside input JSON are ignored.
+
+Local public-AI development uses a dedicated Gemini API key:
+
+```powershell
+Copy-Item .env.example .env
+# Set GEMINI_API_KEY only in the ignored .env file.
+```
+
+Hosted values are stored as encrypted runtime settings and are never committed.
+The configured Gemini free tier can stop responding when its provider quota is
+exhausted; the browser analyzer remains fully usable.
 
 Run tests:
 
@@ -332,6 +361,10 @@ and the API immediately uses the deterministic fallback.
 - `EXPLAIN ANALYZE` is intended only for the synthetic local demo database.
 - Suggested SQL is display-only and is never applied automatically.
 - The public demo never executes SQL and accepts plan JSON only.
+- Public AI is optional and receives only a bounded deterministic evidence
+  summary, never the complete pasted plan.
+- Public AI free-tier data is processed by Google; use the local Foundry path
+  when plan evidence must remain entirely on the device.
 
 QueryPilot Local is an educational and portfolio project. It does not replace
 production workload testing or DBA review.

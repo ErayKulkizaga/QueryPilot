@@ -17,7 +17,11 @@ Show the title or public demo landing state.
 > evidence-backed finding. The correctness path is deterministic and local;
 > the language model is optional.
 
-Call out that the public demo accepts plans only and never executes SQL.
+Call out that the public demo accepts plans only and never executes SQL. Its
+deterministic analysis stays in the browser. For a supported finding, the
+optional public AI action sends only the short evidence summary—not the raw
+plan—to a grounded cloud model and preserves the deterministic result if model
+validation fails.
 
 ## 00:30–01:10 — Reproduce the slow query
 
