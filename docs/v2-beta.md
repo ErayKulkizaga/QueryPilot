@@ -32,7 +32,7 @@ optimization recommendation.
 - The committed synthetic pilot smoke measured two allowlisted queries without
   recording credentials, applying thresholds, or generating recommendations.
 - The public V2 showcase is synthetic, browser-only, and database-free.
-- The release gate passes 93 Python tests at 88.76% coverage, one real-browser
+- The release gate passes 97 Python tests at 88.66% coverage, one real-browser
   Streamlit workflow, and seven public behavior tests.
 - Python and public dependency audits report zero known vulnerabilities.
 
@@ -47,8 +47,8 @@ optimization recommendation.
   required before promotion.
 - Cold-cache labels record operator-controlled conditions; QueryPilot does not
   clear PostgreSQL or operating-system caches.
-- Optional Foundry Local sentence selection remains outside the correctness
-  path and is slow on CPU.
+- Evidence-grounded Foundry Local generation remains outside the deterministic
+  correctness path and is slow on CPU.
 
 ## Promotion rule
 

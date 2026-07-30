@@ -25,7 +25,8 @@ showcase. A recorded demo video remains outside the release scope;
 
 The public demo is intentionally database-free: pasted `EXPLAIN (FORMAT JSON)`
 plans are analyzed inside the browser. The full local runtime adds PostgreSQL,
-FastAPI, Streamlit, local retrieval, and optional Foundry Local enrichment.
+FastAPI, Streamlit, local embedding retrieval, and evidence-grounded Foundry
+Local report generation.
 
 The MVP is a safety-architecture demonstration, not an attempt to replace a
 general-purpose model or a DBA. Its differentiator is enforced behavior:
@@ -215,9 +216,11 @@ streamlit run streamlit_app.py
 
 The deterministic finding appears immediately. If plan evidence and a
 category-supporting document are available, the interface offers a separate
-button for optional local explanation selection. The model can select only
-application-approved sentences; rejected output never replaces the
-deterministic report.
+button for local AI + RAG explanation. Foundry Local writes a concise summary
+and recommendation, and must bind them to application-owned plan-evidence IDs
+and retrieved chunk IDs. Unknown IDs, invented numbers, SQL-like change
+instructions, and malformed output are rejected; fallback never replaces the
+deterministic evidence.
 
 ## Public demo mode
 
@@ -311,12 +314,13 @@ python -m scripts.baseline_smoke
 docker compose stop
 ```
 
-The model generates no technical prose. It returns only two sentence IDs chosen
-from an application-approved, category-specific set. Category, severity,
-evidence, recommendation SQL, citations, no-answer state, and displayed
-sentences are controlled by the application. If the first invalid selection
-exceeds the configured repair cutoff, repair is skipped and the API immediately
-uses the deterministic fallback.
+The model generates the human-facing summary and recommendation from the
+deterministic finding and retrieved PostgreSQL chunks. Category, severity,
+evidence, recommendation SQL, and no-answer state remain application-owned.
+The model submits its structured result through a Foundry tool call; evidence
+and citation IDs must be exact members of the supplied allowlists. If an
+invalid first attempt exceeds the configured repair cutoff, repair is skipped
+and the API immediately uses the deterministic fallback.
 
 ## Safety boundary
 
@@ -341,7 +345,8 @@ The 12-scenario fixture set currently achieves:
 - retrieval Hit@3: 100% (9/9 applicable cases)
 - valid response citations: 100%
 
-Under the sentence-selection contract, `qwen2.5-0.5b` passed one of four cases.
-The stronger `qwen2.5-1.5b` model passed all four and is now the default
-enrichment model. Its average selection time was 20.2 seconds on CPU, so the
-model remains optional and outside the primary correctness path.
+Under the current grounded tool-call contract, `qwen2.5-1.5b` produced four
+accepted natural-language reports in four evaluated cases. Every displayed
+citation came from the retrieved top-3 set. Average local CPU generation time
+was 48.3 seconds and p95 was 55.7 seconds, so generation remains separate from
+the fast deterministic correctness path.

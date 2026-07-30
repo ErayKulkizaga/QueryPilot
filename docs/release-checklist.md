@@ -30,7 +30,7 @@ afterward.
 
 - [x] Deterministic local analysis path
 - [x] Evidence-gated no-answer behavior
-- [x] Strict model sentence-selection boundary
+- [x] Evidence- and citation-bound Foundry Local generation boundary
 - [x] Public browser-only demo
 - [x] Custom domain and TLS
 - [x] English README and measured results
@@ -42,7 +42,7 @@ afterward.
 - [x] Canonical evaluation and API smoke artefacts refreshed
 - [x] Reproducible before/after plan benchmark recorded
 - [x] Two-scenario API rehearsal recorded from a fresh Docker database
-- [x] Final slide includes measured proof, limitations, and tool-calling v2
+- [x] Grounded Foundry tool calling implemented and measured
 - [x] Dependency list reviewed and clean-install compatibility verified
 - [x] Release gate passed from a newly created Python environment
 - [x] Secret and dependency audits passed with zero remaining findings

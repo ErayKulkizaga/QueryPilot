@@ -11,13 +11,25 @@ class FakeChatClient:
         self._responses = iter(responses)
         self.messages: list[list[dict[str, str]]] = []
 
-    def complete(self, messages: list[dict[str, str]]) -> str:
+    def complete(
+        self,
+        messages: list[dict[str, str]],
+        *,
+        tools: list[dict[str, object]] | None = None,
+    ) -> str:
         self.messages.append(messages)
+        assert tools is not None
+        assert tools[0]["function"]["name"] == "submit_grounded_report"
         return next(self._responses)
 
 
 class FailingChatClient:
-    def complete(self, messages: list[dict[str, str]]) -> str:
+    def complete(
+        self,
+        messages: list[dict[str, str]],
+        *,
+        tools: list[dict[str, object]] | None = None,
+    ) -> str:
         raise TimeoutError("local model timed out")
 
 
@@ -84,8 +96,16 @@ def sorting_source() -> RetrievedChunk:
 
 def valid_payload() -> dict[str, object]:
     return {
-        "summary_sentence_id": "summary_context",
-        "recommendation_sentence_id": "recommendation_context",
+        "summary": (
+            "The sequential scan discarded most examined rows, so the "
+            "selective filter deserves index review."
+        ),
+        "recommendation": (
+            "Review an index aligned with the filter, then compare the "
+            "resulting plan and write overhead before making a decision."
+        ),
+        "evidence_ids": ["evidence-1", "evidence-2", "evidence-3"],
+        "citation_ids": ["pg-indexes-01:selective-predicates:01"],
     }
 
 
@@ -105,16 +125,17 @@ def test_assembles_deterministic_fields_around_valid_explanation() -> None:
         "CREATE INDEX idx_customers_email ON customers (email);"
     )
     assert result.report.summary == (
-        "The selective filter makes the sequential scan a candidate for index review."
+        "The sequential scan discarded most examined rows, so the selective "
+        "filter deserves index review."
     )
     assert result.report.citations[0].document_id == "pg-indexes-01"
     assert result.report.insufficient_context is False
     assert len(client.messages) == 1
 
 
-def test_model_cannot_control_citations_and_repairs_extra_fields() -> None:
+def test_unknown_citation_is_repaired_to_retrieved_chunk() -> None:
     invalid = valid_payload()
-    invalid["citations"] = [{"document_id": "invented-source-99"}]
+    invalid["citation_ids"] = ["invented-source-99"]
     client = FakeChatClient([json.dumps(invalid), json.dumps(valid_payload())])
 
     result = GroundedReportGenerator(client).generate(
@@ -126,12 +147,12 @@ def test_model_cannot_control_citations_and_repairs_extra_fields() -> None:
     assert result.repair_attempted is True
     assert result.report.citations[0].document_id == "pg-indexes-01"
     assert len(client.messages) == 2
-    assert "approved sentence lists" in client.messages[1][-1]["content"]
+    assert "unknown citation IDs" in client.messages[1][-1]["content"]
 
 
-def test_unknown_sentence_id_falls_back_after_fast_repair() -> None:
+def test_unknown_evidence_id_falls_back_after_fast_repair() -> None:
     invalid = valid_payload()
-    invalid["summary_sentence_id"] = "summary_invented_by_model"
+    invalid["evidence_ids"] = ["evidence-invented"]
     client = FakeChatClient([json.dumps(invalid), json.dumps(invalid)])
 
     result = GroundedReportGenerator(client).generate(
@@ -143,7 +164,7 @@ def test_unknown_sentence_id_falls_back_after_fast_repair() -> None:
     assert result.repair_attempted is True
     assert result.report.insufficient_context is False
     assert result.report.citations[0].document_id == "pg-indexes-01"
-    assert any("approved sentence list" in error for error in result.validation_errors)
+    assert any("unknown evidence IDs" in error for error in result.validation_errors)
     assert len(client.messages) == 2
 
 
@@ -167,7 +188,7 @@ def test_model_cannot_control_evidence_or_recommendation_sql() -> None:
 
 def test_slow_invalid_first_attempt_skips_repair() -> None:
     invalid = valid_payload()
-    invalid["summary_sentence_id"] = "summary_invented_by_model"
+    invalid["citation_ids"] = ["invented-source-99"]
     client = FakeChatClient([json.dumps(invalid)])
     clock = SequenceClock([0.0, 10.0])
 
@@ -262,3 +283,63 @@ def test_missing_category_supporting_source_bypasses_generation() -> None:
         "no category-supporting retrieved source available for enrichment",
     )
     assert client.messages == []
+
+
+def test_invented_number_sql_instruction_and_identifier_are_rejected() -> None:
+    invalid = valid_payload()
+    invalid["summary"] = (
+        "The plan will improve by 75% after this unsupported change."
+    )
+    invalid["recommendation"] = (
+        "CREATE INDEX `invented_customer_index` immediately because the model "
+        "predicts a guaranteed gain."
+    )
+    client = FakeChatClient([json.dumps(invalid), json.dumps(invalid)])
+
+    result = GroundedReportGenerator(client).generate(
+        analysis=missing_index_analysis(),
+        sources=[index_source()],
+    )
+
+    assert result.source == "deterministic_fallback"
+    assert any("invents numeric values" in error for error in result.validation_errors)
+    assert any(
+        "SQL-like change instructions" in error
+        for error in result.validation_errors
+    )
+    assert any(
+        "invents code identifiers" in error
+        for error in result.validation_errors
+    )
+
+
+def test_prompt_contains_plan_evidence_and_retrieved_source_text() -> None:
+    client = FakeChatClient([json.dumps(valid_payload())])
+
+    GroundedReportGenerator(client).generate(
+        analysis=missing_index_analysis(),
+        sources=[index_source()],
+    )
+
+    prompt = client.messages[0][1]["content"]
+    assert "Rows Removed by Filter: 24,999" in prompt
+    assert "An index is useful when its leading key" in prompt
+    assert "pg-indexes-01:selective-predicates:01" in prompt
+
+
+def test_identifier_from_deterministic_recommendation_sql_is_allowed() -> None:
+    payload = valid_payload()
+    payload["recommendation"] = (
+        "Review `idx_customers_email` as a candidate, then compare the plan "
+        "and write overhead before deciding whether to apply it."
+    )
+
+    result = GroundedReportGenerator(
+        FakeChatClient([json.dumps(payload)])
+    ).generate(
+        analysis=missing_index_analysis(),
+        sources=[index_source()],
+    )
+
+    assert result.source == "foundry_local"
+    assert "`idx_customers_email`" in result.report.recommendation

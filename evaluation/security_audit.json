@@ -1,5 +1,5 @@
 {
-  "audited_at_utc": "2026-07-29T16:27:52Z",
+  "audited_at_utc": "2026-07-30T13:48:45Z",
   "tracked_secret_scan": {
     "status": "passed",
     "tracked_file_count": 152,
@@ -25,8 +25,8 @@
   },
   "python_test_coverage": {
     "status": "passed",
-    "test_count": 93,
-    "coverage_percent": 88.76,
+    "test_count": 97,
+    "coverage_percent": 88.66,
     "required_percent": 80.0
   },
   "live_postgresql_security": {
@@ -75,6 +75,10 @@
     {
       "area": "browser workflow",
       "resolution": "Chromium now exercises workload selection, explicit SQL approval, analysis, baseline storage, export visibility, and comparison in GitHub Actions."
+    },
+    {
+      "area": "grounded local generation",
+      "resolution": "Foundry Local writes human-facing prose through a strict tool schema; evidence and retrieved chunk IDs are allowlisted, while invented numbers, identifiers, URLs, SQL-like instructions, and malformed output are rejected."
     }
   ]
 }
