@@ -59,6 +59,11 @@ afterward.
   [ErayKulkizaga/QueryPilot](https://github.com/ErayKulkizaga/QueryPilot)
 - [x] Version metadata updated to `1.0.0`
 - [x] `v1.0.0` release tag created from the final verified commit
+- [x] Grounded AI/RAG presentation and PDF refreshed for `v2.0.0-beta.2`
+- [x] Version metadata updated to `2.0.0-beta.2`
+- [x] Real PostgreSQL, Foundry Local, and Chromium workflow re-verified for
+  `v2.0.0-beta.2`
+- [x] `v2.0.0-beta.2` release tag created from the final verified commit
 
 The version tag represents the exact commit containing the reviewed
 presentation, screenshots, evaluation, smoke artefacts, and reproducible live

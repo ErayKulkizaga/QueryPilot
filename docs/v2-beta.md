@@ -1,6 +1,6 @@
 # QueryPilot V2 beta acceptance
 
-Status: ready for `v2.0.0-beta.1`.
+Status: ready for `v2.0.0-beta.2`.
 
 ## What the beta proves
 

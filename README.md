@@ -14,7 +14,7 @@ This repository is the implementation of the seven-day MVP plan in
 [Release checklist](docs/release-checklist.md) ·
 [MVP closeout](docs/mvp-closeout.md)
 
-**Release:** `v2.0.0-beta.1` evidence workflow beta, built on the frozen
+**Release:** `v2.0.0-beta.2` grounded AI and evidence workflow beta, built on the frozen
 `v1.0.0` technical MVP. V2 adds workload prioritization, reviewed
 representative-SQL handoff, measurement-grouped plan baselines, checked-in plan
 contracts, portable evidence reports, and a synthetic public regression
