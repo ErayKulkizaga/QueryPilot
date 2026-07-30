@@ -1,6 +1,6 @@
 # QueryPilot V2 beta acceptance
 
-Status: ready for `v2.0.0-beta.2`.
+Status: `v2.0.0-beta.3` public-AI release candidate.
 
 ## What the beta proves
 
@@ -31,9 +31,15 @@ optimization recommendation.
   `EXPLAIN ANALYZE` execution.
 - The committed synthetic pilot smoke measured two allowlisted queries without
   recording credentials, applying thresholds, or generating recommendations.
-- The public V2 showcase is synthetic, browser-only, and database-free.
+- The public V2 showcase is synthetic and database-free; plan analysis remains
+  browser-only, while an optional evidence-only request can produce a grounded
+  cloud-AI explanation.
+- The public AI path cannot run for no-answer results, never receives the full
+  plan, selects its own category source, and falls back to the deterministic
+  report when the model output is invalid or unavailable.
 - The release gate passes 97 Python tests at 88.66% coverage, one real-browser
-  Streamlit workflow, and seven public behavior tests.
+  Streamlit workflow, and 12 public behavior tests plus the rendered-shell
+  check.
 - Python and public dependency audits report zero known vulnerabilities.
 
 ## Remaining product boundaries
@@ -49,6 +55,9 @@ optimization recommendation.
   clear PostgreSQL or operating-system caches.
 - Evidence-grounded Foundry Local generation remains outside the deterministic
   correctness path and is slow on CPU.
+- Public Gemini usage depends on a third-party free-tier quota and processes
+  only the sanitized evidence payload; privacy-sensitive plans should use the
+  local Foundry path.
 
 ## Promotion rule
 

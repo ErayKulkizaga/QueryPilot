@@ -7,8 +7,9 @@ QueryPilot Local has two deliberately separate surfaces:
    and can optionally enrich the deterministic report with local retrieval and
    evidence-grounded natural-language generation.
 2. **Public portfolio demo** — accepts only synthetic fixtures or pasted
-   `EXPLAIN (FORMAT JSON)` output and runs the deterministic analyzer entirely
-   in the browser.
+   `EXPLAIN (FORMAT JSON)` output, runs the deterministic analyzer entirely in
+   the browser, and optionally sends only its bounded evidence summary to a
+   grounded cloud-AI explanation endpoint.
 
 The separation keeps the public deployment database-free while preserving a
 full local implementation for technical demonstrations.
@@ -134,12 +135,24 @@ flowchart LR
     T --> Q["Deterministic rules"]
     Q --> O["Evidence, recommendation, or no-answer"]
     Q --> C["Category-bound citation allowlist"]
+    O -->|optional supported finding| E["Bounded evidence-only request"]
+    E --> K["Category-owned PostgreSQL knowledge chunk"]
+    K --> G["Gemini free-tier generation"]
+    G --> V["Evidence and citation integrity gate"]
+    V -->|accepted prose| B
+    V -->|invalid, unavailable, or quota-limited| O
 ```
 
-The public demo has no PostgreSQL connection, API request for analysis, model
-inference, embedding call, or application-owned persistence. Pasted plan
-content stays in the browser. Citation-like fields inside input JSON are
-ignored.
+The public demo has no PostgreSQL connection, server-side plan analysis,
+embedding call, or application-owned persistence. Pasted plan content stays in
+the browser. Citation-like fields inside input JSON are ignored.
+
+Cloud generation is a separate user action and is unavailable on the
+no-clear-issue path. The endpoint accepts at most 8 KB, requires same-origin
+JSON, selects its own category-supporting source, and sends no raw plan.
+Unknown evidence/citation IDs, invented numbers, identifiers, URLs, SQL action
+instructions, extra fields, and malformed output are rejected. Provider
+failure, timeout, or quota exhaustion leaves the deterministic result intact.
 
 ## Trust boundaries
 
@@ -157,6 +170,10 @@ ignored.
 | Model response | Generated prose bound to known evidence and retrieved chunk IDs |
 | Citations | Application-owned, category-specific allowlist |
 | Public input | JSON only, 200 KB, at most 250 plan nodes |
+| Public AI request | Same-origin, evidence-only JSON, at most 8 KB |
+| Public retrieval | One application-owned PostgreSQL chunk selected by deterministic category |
+| Public model response | Grounded IDs, numeric integrity, bounded prose, deterministic fallback |
+| Public AI credential | Encrypted server runtime value; never exposed to browser or Git |
 
 ## Current measured result
 
@@ -184,7 +201,7 @@ performance guarantee.
 
 - Full local runtime: Windows, Docker Desktop PostgreSQL, FastAPI, Streamlit,
   and optional Foundry Local.
-- Public demo: static/browser-first deployment at
-  `https://querypilot.eraykulkizaga.com`.
+- Public demo: browser-first deployment with one optional server-side AI
+  endpoint at `https://querypilot.eraykulkizaga.com`.
 - Custom domain and TLS terminate at the public hosting provider; no private
   database or local model is exposed.

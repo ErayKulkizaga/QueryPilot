@@ -8,6 +8,10 @@ import {
 } from "../lib/analyzer";
 import { DEMO_FIXTURES } from "../lib/fixtures";
 import {
+  publicAiRequestFromAnalysis,
+  type PublicAiExplanation,
+} from "../lib/public-ai";
+import {
   regressionReasons,
   SYNTHETIC_WORKLOAD,
 } from "../lib/v2-showcase";
@@ -37,7 +41,29 @@ function BrandMark() {
   );
 }
 
-function ResultPanel({ result }: { result: AnalysisResult }) {
+interface AiCitation {
+  chunkId: string;
+  documentId: string;
+  title: string;
+  section: string;
+  url: string;
+}
+
+function ResultPanel({
+  result,
+  aiExplanation,
+  aiCitation,
+  aiError,
+  aiLoading,
+  onRequestAi,
+}: {
+  result: AnalysisResult;
+  aiExplanation: PublicAiExplanation | null;
+  aiCitation: AiCitation | null;
+  aiError: string;
+  aiLoading: boolean;
+  onRequestAi: () => void;
+}) {
   return (
     <section className="result-panel" aria-live="polite">
       <div className="result-heading">
@@ -91,6 +117,61 @@ function ResultPanel({ result }: { result: AnalysisResult }) {
           </a>
         )}
       </div>
+
+      {!result.insufficientContext && (
+        <section className="ai-enrichment" aria-live="polite">
+          <div className="ai-enrichment-heading">
+            <div>
+              <p className="eyebrow">İsteğe bağlı AI + RAG</p>
+              <h3>Kanıtı doğal dille açıkla</h3>
+            </div>
+            {!aiExplanation && (
+              <button
+                className="secondary-button"
+                type="button"
+                onClick={onRequestAi}
+                disabled={aiLoading}
+              >
+                {aiLoading ? "AI açıklıyor…" : "AI + RAG ile açıkla"}
+              </button>
+            )}
+          </div>
+          <p className="ai-privacy-note">
+            Planın tamamı gönderilmez. Yalnızca yukarıdaki kısa kanıt özeti,
+            seçilen PostgreSQL kaynağıyla birlikte bulut modeline iletilir.
+          </p>
+
+          {aiError && (
+            <div className="ai-message ai-message-error" role="alert">
+              {aiError}
+            </div>
+          )}
+
+          {aiExplanation && (
+            <div className="ai-answer">
+              <div>
+                <span>AI açıklaması</span>
+                <p>{aiExplanation.summary}</p>
+              </div>
+              <div>
+                <span>Kanıta bağlı değerlendirme</span>
+                <p>{aiExplanation.recommendation}</p>
+              </div>
+              <div className="ai-answer-footer">
+                <span>
+                  Google Gemini · {aiExplanation.model} · çıktı doğrulandı
+                </span>
+                {aiCitation && (
+                  <a href={aiCitation.url} target="_blank" rel="noreferrer">
+                    {aiCitation.title} · {aiCitation.documentId}
+                    <span aria-hidden="true">↗</span>
+                  </a>
+                )}
+              </div>
+            </div>
+          )}
+        </section>
+      )}
     </section>
   );
 }
@@ -111,6 +192,11 @@ export function QueryPilotDemo() {
   const [status, setStatus] = useState(
     "Bir senaryo seçin ve analizi başlatın.",
   );
+  const [aiExplanation, setAiExplanation] =
+    useState<PublicAiExplanation | null>(null);
+  const [aiCitation, setAiCitation] = useState<AiCitation | null>(null);
+  const [aiError, setAiError] = useState("");
+  const [aiLoading, setAiLoading] = useState(false);
   const resultRef = useRef<HTMLDivElement>(null);
   const [workloadId, setWorkloadId] = useState(SYNTHETIC_WORKLOAD[0].id);
   const selectedWorkload =
@@ -129,6 +215,10 @@ export function QueryPilotDemo() {
   function analyze() {
     try {
       setResult(analyzeExplainJson(inputJson));
+      setAiExplanation(null);
+      setAiCitation(null);
+      setAiError("");
+      setAiLoading(false);
       setError("");
       setAnalysisRun((current) => current + 1);
       setStatus("Analiz tamamlandı. Sonuç aşağıda gösteriliyor.");
@@ -149,6 +239,9 @@ export function QueryPilotDemo() {
     if (fixture) {
       setResult(null);
       setError("");
+      setAiExplanation(null);
+      setAiCitation(null);
+      setAiError("");
       setStatus(
         `"${fixture.title}" seçildi. Sonucu görmek için Planı analiz et düğmesine basın.`,
       );
@@ -159,6 +252,9 @@ export function QueryPilotDemo() {
     setMode(nextMode);
     setResult(null);
     setError("");
+    setAiExplanation(null);
+    setAiCitation(null);
+    setAiError("");
     if (nextMode === "json") {
       setStatus(
         customJson
@@ -176,7 +272,59 @@ export function QueryPilotDemo() {
     setCustomJson(DEMO_FIXTURES[0].json);
     setResult(null);
     setError("");
+    setAiExplanation(null);
+    setAiCitation(null);
+    setAiError("");
     setStatus("Örnek EXPLAIN JSON yüklendi. Şimdi analizi başlatabilirsiniz.");
+  }
+
+  async function requestAiExplanation() {
+    if (!result || aiLoading) return;
+    const requestBody = publicAiRequestFromAnalysis(result);
+    if (!requestBody) {
+      setAiError("AI açıklaması için yeterli deterministik plan kanıtı yok.");
+      return;
+    }
+
+    setAiLoading(true);
+    setAiError("");
+    try {
+      const response = await fetch("/api/ai-explain", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(requestBody),
+      });
+      const payload: unknown = await response.json();
+      if (
+        !response.ok ||
+        typeof payload !== "object" ||
+        payload === null ||
+        !("explanation" in payload)
+      ) {
+        const message =
+          typeof payload === "object" &&
+          payload !== null &&
+          "error" in payload &&
+          typeof payload.error === "string"
+            ? payload.error
+            : "AI açıklaması alınamadı. Deterministik sonuç geçerliliğini koruyor.";
+        throw new Error(message);
+      }
+      setAiExplanation(payload.explanation as PublicAiExplanation);
+      setAiCitation(
+        "citation" in payload ? (payload.citation as AiCitation) : null,
+      );
+    } catch (caught) {
+      setAiExplanation(null);
+      setAiCitation(null);
+      setAiError(
+        caught instanceof Error
+          ? caught.message
+          : "AI açıklaması alınamadı. Deterministik sonuç geçerliliğini koruyor.",
+      );
+    } finally {
+      setAiLoading(false);
+    }
   }
 
   return (
@@ -188,7 +336,7 @@ export function QueryPilotDemo() {
         </a>
         <div className="header-actions">
           <span className="privacy-pill">
-            Veriniz tarayıcıdan çıkmaz
+            Plan analizi tarayıcıda
           </span>
           <a className="text-link" href="#nasıl-çalışır">
             Nasıl çalışır?
@@ -209,10 +357,10 @@ export function QueryPilotDemo() {
             </h1>
             <p className="hero-description">
               QueryPilot, EXPLAIN JSON planını doğrudan tarayıcınızda inceler.
-              Güçlü plan kanıtı yoksa optimizasyon önerisi üretmez.
+              Kanıt bulunduğunda isteğe bağlı AI + RAG açıklaması sunar.
             </p>
             <div className="hero-points">
-              <span><CheckIcon /> LLM ve bulut çağrısı yok</span>
+              <span><CheckIcon /> AI açıklaması isteğe bağlı</span>
               <span><CheckIcon /> SQL çalıştırılmaz</span>
               <span><CheckIcon /> Kaynaklar allowlist ile bağlı</span>
             </div>
@@ -309,7 +457,7 @@ export function QueryPilotDemo() {
               </button>
               <p className="analysis-status" role="status">{status}</p>
             </div>
-            <p>İçerik cihazınızdan gönderilmez.</p>
+            <p>Plan cihazınızda analiz edilir; AI yalnızca kısa kanıt özetini alır.</p>
           </div>
 
           {error && <div className="error-message" role="alert">{error}</div>}
@@ -320,7 +468,14 @@ export function QueryPilotDemo() {
               className="result-anchor"
               tabIndex={-1}
             >
-              <ResultPanel result={result} />
+              <ResultPanel
+                result={result}
+                aiExplanation={aiExplanation}
+                aiCitation={aiCitation}
+                aiError={aiError}
+                aiLoading={aiLoading}
+                onRequestAi={requestAiExplanation}
+              />
             </div>
           )}
         </section>
@@ -413,8 +568,9 @@ export function QueryPilotDemo() {
           <p className="eyebrow">Güvenlik mimarisi</p>
           <h2>Önce kanıt, sonra öneri.</h2>
           <p>
-            Public demo, QueryPilot’ın güvenilir çekirdeğini gösterir. Gerçek
-            veritabanı bağlantısı ve yerel model tam masaüstü sürümünde kalır.
+            Public demo, tarayıcıdaki güvenilir çekirdeği isteğe bağlı bulut
+            AI açıklamasıyla birleştirir. Gerçek veritabanı ve Foundry Local
+            modeli tam yerel sürümde kalır.
           </p>
         </div>
         <div className="steps">
@@ -430,13 +586,13 @@ export function QueryPilotDemo() {
           </article>
           <article>
             <span>03</span>
-            <h3>Kanıtı bağla</h3>
-            <p>Öneri ve resmi PostgreSQL kaynağı kategori allowlist’inden gelir.</p>
+            <h3>Kaynağı getir</h3>
+            <p>Kategoriye uygun PostgreSQL bilgi parçası güvenilir listeden seçilir.</p>
           </article>
           <article>
             <span>04</span>
-            <h3>Gerekirse sus</h3>
-            <p>Güçlü sinyal bulunmazsa şema değişikliği önerilmez.</p>
+            <h3>AI çıktısını doğrula</h3>
+            <p>Bilinmeyen kanıt, kaynak ve sayılar reddedilir; gerekirse çekirdek sonuç korunur.</p>
           </article>
         </div>
       </section>
@@ -447,7 +603,7 @@ export function QueryPilotDemo() {
           <span>QueryPilot</span>
         </div>
         <p>Güvenli, açıklanabilir ve offline-first PostgreSQL plan analizi.</p>
-        <span>Public demo · Sentetik veriler</span>
+        <span>Public demo · İsteğe bağlı bulut AI</span>
       </footer>
     </main>
   );

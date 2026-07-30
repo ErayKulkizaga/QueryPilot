@@ -32,6 +32,10 @@ afterward.
 - [x] Evidence-gated no-answer behavior
 - [x] Evidence- and citation-bound Foundry Local generation boundary
 - [x] Public browser-only demo
+- [x] Optional public AI + RAG endpoint with evidence-only transfer
+- [x] Public model-output evidence, citation, numeric, URL, identifier, and SQL-action validation
+- [ ] Dedicated Gemini free-tier key stored in hosted runtime settings
+- [ ] Public AI live smoke completed through the custom domain
 - [x] Custom domain and TLS
 - [x] English README and measured results
 - [x] Architecture document
@@ -64,6 +68,8 @@ afterward.
 - [x] Real PostgreSQL, Foundry Local, and Chromium workflow re-verified for
   `v2.0.0-beta.2`
 - [x] `v2.0.0-beta.2` release tag created from the final verified commit
+- [x] Public-AI source and documentation prepared for `v2.0.0-beta.3`
+- [ ] `v2.0.0-beta.3` live deployment and release tag created
 
 The version tag represents the exact commit containing the reviewed
 presentation, screenshots, evaluation, smoke artefacts, and reproducible live

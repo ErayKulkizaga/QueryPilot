@@ -5,6 +5,7 @@ import json
 import shutil
 import subprocess
 import sys
+import tempfile
 import tomllib
 from pathlib import Path
 
@@ -12,7 +13,7 @@ from app import __version__
 
 ROOT = Path(__file__).resolve().parents[1]
 PUBLIC_DEMO = ROOT / "public-demo"
-RELEASE_VERSION = "2.0.0-beta.2"
+RELEASE_VERSION = "2.0.0-beta.3"
 
 REQUIRED_FILES = (
     ROOT / "README.md",
@@ -109,8 +110,12 @@ def main() -> None:
             "-m",
             "pip_audit",
             "--local",
+            "--cache-dir",
+            str(Path(tempfile.gettempdir()) / "querypilot-pip-audit-cache"),
             "--progress-spinner",
             "off",
+            "--timeout",
+            "30",
         ],
     )
     run(
