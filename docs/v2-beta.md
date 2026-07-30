@@ -38,8 +38,8 @@ optimization recommendation.
   plan, selects its own category source, and falls back to the deterministic
   report when the model output is invalid or unavailable.
 - The release gate passes 97 Python tests at 88.66% coverage, one real-browser
-  Streamlit workflow, and 12 public behavior tests plus the rendered-shell
-  check.
+  Streamlit workflow, and 18 public behavior, integration, and rendered-shell
+  tests.
 - Python and public dependency audits report zero known vulnerabilities.
 
 ## Remaining product boundaries

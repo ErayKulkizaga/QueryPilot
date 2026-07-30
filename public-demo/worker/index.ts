@@ -29,16 +29,77 @@ interface ExecutionContext {
 
 const DEFAULT_GEMINI_MODEL = "gemini-3.1-flash-lite";
 const AI_TIMEOUT_MS = 15_000;
+const RATE_LIMIT_WINDOW_MS = 10 * 60 * 1_000;
+const RATE_LIMIT_MAX_REQUESTS = 5;
+const RATE_LIMIT_MAX_CLIENTS = 500;
+const rateLimits = new Map<string, { count: number; resetAt: number }>();
 
-const jsonResponse = (body: object, status = 200): Response =>
+const jsonResponse = (
+  body: object,
+  status = 200,
+  extraHeaders?: HeadersInit,
+): Response =>
   Response.json(body, {
     status,
     headers: {
       "Cache-Control": "no-store",
       "Content-Security-Policy": "default-src 'none'",
+      "Cross-Origin-Resource-Policy": "same-origin",
+      "Referrer-Policy": "no-referrer",
       "X-Content-Type-Options": "nosniff",
+      ...extraHeaders,
     },
   });
+
+function rateLimitRetryAfter(request: Request): number | null {
+  const now = Date.now();
+  const clientId =
+    request.headers.get("CF-Connecting-IP")?.trim() || "local-client";
+  const current = rateLimits.get(clientId);
+  if (!current || current.resetAt <= now) {
+    if (rateLimits.size >= RATE_LIMIT_MAX_CLIENTS) {
+      for (const [key, value] of rateLimits) {
+        if (value.resetAt <= now) rateLimits.delete(key);
+      }
+      if (rateLimits.size >= RATE_LIMIT_MAX_CLIENTS) {
+        rateLimits.delete(rateLimits.keys().next().value as string);
+      }
+    }
+    rateLimits.set(clientId, {
+      count: 1,
+      resetAt: now + RATE_LIMIT_WINDOW_MS,
+    });
+    return null;
+  }
+  if (current.count >= RATE_LIMIT_MAX_REQUESTS) {
+    return Math.max(1, Math.ceil((current.resetAt - now) / 1_000));
+  }
+  current.count += 1;
+  return null;
+}
+
+function withPageSecurityHeaders(response: Response): Response {
+  const headers = new Headers(response.headers);
+  headers.set(
+    "Content-Security-Policy",
+    "default-src 'self'; base-uri 'none'; connect-src 'self'; font-src 'self'; form-action 'none'; frame-ancestors 'none'; img-src 'self' data:; object-src 'none'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline'; upgrade-insecure-requests",
+  );
+  headers.set("Cross-Origin-Opener-Policy", "same-origin");
+  headers.set("Cross-Origin-Resource-Policy", "same-origin");
+  headers.set(
+    "Permissions-Policy",
+    "camera=(), geolocation=(), microphone=(), payment=(), usb=()",
+  );
+  headers.set("Referrer-Policy", "no-referrer");
+  headers.set("Strict-Transport-Security", "max-age=31536000");
+  headers.set("X-Content-Type-Options", "nosniff");
+  headers.set("X-Frame-Options", "DENY");
+  return new Response(response.body, {
+    status: response.status,
+    statusText: response.statusText,
+    headers,
+  });
+}
 
 async function handleAiExplanation(
   request: Request,
@@ -77,7 +138,24 @@ async function handleAiExplanation(
     );
   }
 
-  const model = env.GEMINI_MODEL?.trim() || DEFAULT_GEMINI_MODEL;
+  const retryAfter = rateLimitRetryAfter(request);
+  if (retryAfter !== null) {
+    return jsonResponse(
+      {
+        error:
+          "AI açıklama sınırına ulaşıldı. Deterministik sonuç kullanılmaya devam edebilir.",
+        code: "AI_RATE_LIMITED",
+      },
+      429,
+      { "Retry-After": String(retryAfter) },
+    );
+  }
+
+  const configuredModel = env.GEMINI_MODEL?.trim();
+  const model =
+    configuredModel === DEFAULT_GEMINI_MODEL
+      ? configuredModel
+      : DEFAULT_GEMINI_MODEL;
   const controller = new AbortController();
   const timeout = setTimeout(() => controller.abort(), AI_TIMEOUT_MS);
   let providerResponse: Response;
@@ -91,6 +169,7 @@ async function handleAiExplanation(
           "x-goog-api-key": env.GEMINI_API_KEY,
         },
         body: JSON.stringify(buildGeminiRequest(groundingRequest)),
+        redirect: "error",
         signal: controller.signal,
       },
     );
@@ -155,20 +234,21 @@ const worker = {
 
     if (url.pathname === "/_vinext/image") {
       const allowedWidths = [...DEFAULT_DEVICE_SIZES, ...DEFAULT_IMAGE_SIZES];
-      return handleImageOptimization(request, {
+      const response = await handleImageOptimization(request, {
         fetchAsset: (path) => env.ASSETS.fetch(new Request(new URL(path, request.url))),
         transformImage: async (body, { width, format, quality }) => {
           const result = await env.IMAGES.input(body).transform(width > 0 ? { width } : {}).output({ format, quality });
           return result.response();
         },
       }, allowedWidths);
+      return withPageSecurityHeaders(response);
     }
 
     if (url.pathname === "/api/ai-explain") {
       return handleAiExplanation(request, env);
     }
 
-    return handler.fetch(request, env, ctx);
+    return withPageSecurityHeaders(await handler.fetch(request, env, ctx));
   },
 };
 

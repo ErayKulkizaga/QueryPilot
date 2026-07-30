@@ -36,6 +36,7 @@ interface KnowledgeChunk {
   section: string;
   url: string;
   text: string;
+  canonicalSummary: string;
   canonicalRecommendation: string;
 }
 
@@ -44,6 +45,11 @@ const NUMBER_PATTERN = /(?<![\w.-])\d+(?:[.,]\d+)?%?/g;
 const CODE_TOKEN_PATTERN = /`([^`]+)`/g;
 const SQL_ACTION_PATTERN =
   /\b(?:ALTER|CREATE|DELETE|DROP|INSERT|MERGE|TRUNCATE|UPDATE)\b/i;
+const HTML_PATTERN = /[<>]/;
+const TURKISH_NUMBER =
+  "(?:\\d{1,3}(?:\\.\\d{3})*(?:,\\d+)?|\\d+(?:,\\d+)?)";
+const SAFE_NODE_TYPE = "[A-Za-z][A-Za-z0-9 ]{0,47}";
+const SAFE_IDENTIFIER = "[A-Za-z_][A-Za-z0-9_]{0,62}";
 
 const KNOWLEDGE: Record<GroundedCategory, KnowledgeChunk> = {
   potential_missing_index: {
@@ -54,6 +60,8 @@ const KNOWLEDGE: Record<GroundedCategory, KnowledgeChunk> = {
     url: "https://www.postgresql.org/docs/current/indexes.html",
     text:
       "Indexes can help PostgreSQL find selected rows without scanning an entire table. They also add storage and write overhead, so a candidate index must be measured against the real workload and a new execution plan.",
+    canonicalSummary:
+      "Seçici bir filtre sırasında sıralı taramanın çok sayıda satırı elemesi, ölçülmesi gereken bir indeks sinyalidir.",
     canonicalRecommendation:
       "Seçici filtreyi destekleyen bir indeks adayını yalnızca test ortamında değerlendirin; yazma maliyetini ve yeni planı ölçmeden uygulamayın.",
   },
@@ -65,6 +73,8 @@ const KNOWLEDGE: Record<GroundedCategory, KnowledgeChunk> = {
     url: "https://www.postgresql.org/docs/current/using-explain.html",
     text:
       "A nested loop executes its inner child for rows produced by the outer child. A high inner-loop count can amplify work, but the join method should not be changed blindly; indexes, selectivity, and statistics must be checked together.",
+    canonicalSummary:
+      "Nested loop iç planının çok sayıda tekrar çalışması, join maliyetini büyüten ölçülebilir bir sinyaldir.",
     canonicalRecommendation:
       "Join anahtarlarını, iç plan tekrarını ve istatistikleri birlikte inceleyin; join türünü zorlamadan alternatif planları ölçün.",
   },
@@ -76,6 +86,8 @@ const KNOWLEDGE: Record<GroundedCategory, KnowledgeChunk> = {
     url: "https://www.postgresql.org/docs/current/runtime-config-resource.html#GUC-WORK-MEM",
     text:
       "PostgreSQL can write sort data to temporary disk files when a sort exceeds available working memory. Reducing rows before sorting or using an appropriate access path should be evaluated before changing memory settings.",
+    canonicalSummary:
+      "Sıralamanın geçici disk alanı kullanması, çalışma belleğini aşan ölçülebilir bir plan sinyalidir.",
     canonicalRecommendation:
       "Önce sıralamaya giren satırları azaltmayı ve sıralamayı destekleyen erişim yollarını değerlendirin; bellek ayarını ancak karşılaştırmalı ölçümle inceleyin.",
   },
@@ -87,6 +99,8 @@ const KNOWLEDGE: Record<GroundedCategory, KnowledgeChunk> = {
     url: "https://www.postgresql.org/docs/current/planner-stats.html",
     text:
       "The PostgreSQL planner uses table statistics to estimate row counts. Stale statistics, skewed distributions, and correlated columns can cause estimate errors and lead the planner toward a less suitable plan.",
+    canonicalSummary:
+      "Planlanan ve gözlenen satır sayıları arasındaki belirgin fark, planlayıcı tahminlerinin incelenmesi gerektiğini gösterir.",
     canonicalRecommendation:
       "İstatistiklerin güncelliğini, veri dağılımını ve kolon korelasyonunu inceleyin; değişiklikten sonra planı yeniden ölçün.",
   },
@@ -108,6 +122,44 @@ const cleanText = (value: string, maxLength: number): string =>
 
 const unique = (values: string[]): boolean =>
   new Set(values).size === values.length;
+
+const evidencePatterns: Record<GroundedCategory, RegExp[]> = {
+  potential_missing_index: [
+    new RegExp(`^Düğüm: Seq Scan on ${SAFE_IDENTIFIER}$`),
+    new RegExp(`^Filtreyle elenen satır: ${TURKISH_NUMBER}$`),
+    new RegExp(`^Filtre seçiciliği: %${TURKISH_NUMBER}$`),
+  ],
+  expensive_nested_loop: [
+    new RegExp(`^Nested Loop toplam süresi: ${TURKISH_NUMBER} ms$`),
+    new RegExp(`^İç düğüm: ${SAFE_NODE_TYPE}$`),
+    new RegExp(`^İç plan tekrarı: ${TURKISH_NUMBER}$`),
+  ],
+  disk_based_sort: [
+    /^Sort Method: [A-Za-z0-9 -]{1,80}$/,
+    /^Sort Space Type: [A-Za-z]{1,24}$/,
+    new RegExp(`^Sort Space Used: ${TURKISH_NUMBER} kB$`),
+  ],
+  cardinality_misestimation: [
+    new RegExp(`^Düğüm: ${SAFE_NODE_TYPE}$`),
+    new RegExp(`^Planlanan satır: ${TURKISH_NUMBER}$`),
+    new RegExp(`^Gerçek satır: ${TURKISH_NUMBER}$`),
+    new RegExp(`^Tahmin hatası: ${TURKISH_NUMBER}x$`),
+  ],
+};
+
+function validateEvidenceShape(
+  category: GroundedCategory,
+  evidence: string[],
+): string[] {
+  const patterns = evidencePatterns[category];
+  if (
+    evidence.length !== patterns.length ||
+    evidence.some((item, index) => !patterns[index].test(item))
+  ) {
+    throw new Error("Plan kanıtı beklenen güvenli biçimle eşleşmiyor.");
+  }
+  return evidence;
+}
 
 export function publicAiRequestFromAnalysis(
   result: AnalysisResult,
@@ -161,19 +213,23 @@ export function parsePublicAiRequest(raw: string): PublicAiRequest {
     throw new Error("Plan kanıtı bir ile altı metin alanı içermelidir.");
   }
 
-  const summary = cleanText(value.summary, 500);
+  const submittedSummary = cleanText(value.summary, 500);
   const evidence = value.evidence.map((item) =>
     cleanText(item as string, 240),
   );
-  if (summary.length < 10 || evidence.some((item) => item.length < 3)) {
+  if (
+    submittedSummary.length < 10 ||
+    evidence.some((item) => item.length < 3)
+  ) {
     throw new Error("AI açıklaması için yeterli plan kanıtı yok.");
   }
+  const groundedCategory = category as GroundedCategory;
 
   return {
-    category: category as GroundedCategory,
+    category: groundedCategory,
     severity,
-    summary,
-    evidence,
+    summary: KNOWLEDGE[groundedCategory].canonicalSummary,
+    evidence: validateEvidenceShape(groundedCategory, evidence),
   };
 }
 
@@ -325,7 +381,8 @@ export function validateModelExplanation(
     }
     if (
       SQL_ACTION_PATTERN.test(text) ||
-      /https?:\/\//i.test(text)
+      /https?:\/\//i.test(text) ||
+      HTML_PATTERN.test(text)
     ) {
       throw new Error("AI çıktısı güvenilmeyen işlem veya bağlantı içeriyor.");
     }

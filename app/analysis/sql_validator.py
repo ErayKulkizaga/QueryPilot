@@ -86,5 +86,10 @@ def validate_read_only_sql(sql: str) -> str:
             f"Function {side_effect} is not allowed in analyzed queries."
         )
 
-    return statement.sql(dialect="postgres", pretty=False)
+    unsupported_function = next(statement.find_all(exp.Anonymous), None)
+    if unsupported_function is not None:
+        raise SQLValidationError(
+            "User-defined or unsupported functions are not allowed in analyzed queries."
+        )
 
+    return statement.sql(dialect="postgres", pretty=False)

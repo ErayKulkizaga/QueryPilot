@@ -151,8 +151,10 @@ Cloud generation is a separate user action and is unavailable on the
 no-clear-issue path. The endpoint accepts at most 8 KB, requires same-origin
 JSON, selects its own category-supporting source, and sends no raw plan.
 Unknown evidence/citation IDs, invented numbers, identifiers, URLs, SQL action
-instructions, extra fields, and malformed output are rejected. Provider
-failure, timeout, or quota exhaustion leaves the deterministic result intact.
+instructions, HTML, extra fields, malformed output, and prompt-like evidence
+shapes are rejected. Submitted summaries are replaced with application-owned
+grounding. Provider failure, timeout, quota exhaustion, or request limiting
+leaves the deterministic result intact.
 
 ## Trust boundaries
 
@@ -174,6 +176,7 @@ failure, timeout, or quota exhaustion leaves the deterministic result intact.
 | Public retrieval | One application-owned PostgreSQL chunk selected by deterministic category |
 | Public model response | Grounded IDs, numeric integrity, bounded prose, deterministic fallback |
 | Public AI credential | Encrypted server runtime value; never exposed to browser or Git |
+| Public AI abuse | Free-tier quota, bounded request, provider timeout, best-effort per-client limit |
 
 ## Current measured result
 
