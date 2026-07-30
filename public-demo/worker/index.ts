@@ -173,8 +173,15 @@ async function handleAiExplanation(
         signal: controller.signal,
       },
     );
-  } catch {
+  } catch (error) {
     clearTimeout(timeout);
+    console.error("Gemini provider fetch failed", {
+      name: error instanceof Error ? error.name : "UnknownError",
+      message:
+        error instanceof Error
+          ? error.message.replace(/\s+/g, " ").slice(0, 160)
+          : "Unknown provider failure",
+    });
     return jsonResponse(
       {
         error:
