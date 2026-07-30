@@ -103,8 +103,10 @@ test("public AI endpoint fails closed when its server credential is absent", asy
 test("public AI endpoint accepts only a grounded provider response", async () => {
   const worker = await loadWorker();
   const originalFetch = globalThis.fetch;
-  globalThis.fetch = async () =>
-    Response.json({
+  let providerRequest;
+  globalThis.fetch = async (input, init) => {
+    providerRequest = { input, init };
+    return Response.json({
       candidates: [
         {
           content: {
@@ -126,6 +128,7 @@ test("public AI endpoint accepts only a grounded provider response", async () =>
         },
       ],
     });
+  };
 
   try {
     const response = await worker.fetch(
@@ -151,6 +154,11 @@ test("public AI endpoint accepts only a grounded provider response", async () =>
     const payload = await response.json();
     assert.equal(payload.explanation.model, "gemini-3.1-flash-lite");
     assert.equal(payload.citation.documentId, "pg-indexes-01");
+    assert.match(
+      String(providerRequest.input),
+      /^https:\/\/generativelanguage\.googleapis\.com\//,
+    );
+    assert.equal(providerRequest.init.redirect, "manual");
   } finally {
     globalThis.fetch = originalFetch;
   }

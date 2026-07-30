@@ -169,7 +169,7 @@ async function handleAiExplanation(
           "x-goog-api-key": env.GEMINI_API_KEY,
         },
         body: JSON.stringify(buildGeminiRequest(groundingRequest)),
-        redirect: "error",
+        redirect: "manual",
         signal: controller.signal,
       },
     );
