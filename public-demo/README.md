@@ -31,10 +31,14 @@ The optional AI endpoint additionally enforces:
 - no AI call for the no-clear-issue path
 - server-only API credentials
 - a 15-second provider timeout
+- a best-effort per-client, per-isolate request limit
 - exact evidence and citation ID allowlists
-- rejection of invented numbers, identifiers, URLs, and SQL change commands
+- replacement of submitted summaries with application-owned grounding
+- fixed evidence shapes that reject prompt-like text and unsafe identifiers
+- rejection of invented numbers, identifiers, URLs, HTML, and SQL commands
 - deterministic fallback on invalid output, provider errors, or free-quota
   exhaustion
+- hardened browser and API response headers
 
 ## Local development
 

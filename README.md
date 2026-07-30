@@ -12,6 +12,7 @@ This repository is the implementation of the seven-day MVP plan in
 [Architecture](docs/architecture.md) ·
 [Technical presentation](artifacts/QueryPilot_Local_Teknik_Sunum.pdf) ·
 [Release checklist](docs/release-checklist.md) ·
+[Security review](docs/security-review.md) ·
 [MVP closeout](docs/mvp-closeout.md)
 
 **Release candidate:** `v2.0.0-beta.3`, built on the frozen `v1.0.0`
@@ -64,9 +65,11 @@ The current beta includes:
   entirely in the browser and optionally requests a grounded cloud-AI
   explanation
 - a server-only public AI credential, bounded evidence payload, same-origin
-  endpoint, 15-second timeout, and deterministic fallback
+  endpoint, 15-second timeout, per-client request limiting, hardened response
+  headers, and deterministic fallback
 - category-selected public RAG chunks plus strict evidence/citation ID,
-  numeric-integrity, URL, identifier, and SQL-action validation
+  numeric-integrity, URL, HTML, identifier, prompt-shape, and SQL-action
+  validation
 - a least-privilege `pg_stat_statements` workload view and deterministic
   total-execution-time ranking API
 - persistent local plan baselines and same-query deterministic plan comparison

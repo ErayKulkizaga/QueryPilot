@@ -1,4 +1,5 @@
 import assert from "node:assert/strict";
+import { readFile, readdir } from "node:fs/promises";
 import test from "node:test";
 
 async function loadWorker() {
@@ -30,6 +31,12 @@ test("server-renders the QueryPilot public demo shell", async () => {
   const response = await render();
   assert.equal(response.status, 200);
   assert.match(response.headers.get("content-type") ?? "", /^text\/html\b/i);
+  assert.equal(response.headers.get("x-frame-options"), "DENY");
+  assert.equal(response.headers.get("referrer-policy"), "no-referrer");
+  assert.match(
+    response.headers.get("content-security-policy") ?? "",
+    /frame-ancestors 'none'/,
+  );
 
   const html = await response.text();
   assert.match(html, /<html[^>]*lang="tr"/i);
@@ -44,6 +51,22 @@ test("server-renders the QueryPilot public demo shell", async () => {
   assert.match(html, /Öneri üretilmedi/);
   assert.match(html, /Warm cache/);
   assert.doesNotMatch(html, /codex-preview|react-loading-skeleton/i);
+});
+
+test("client bundle contains no server credential surface", async () => {
+  const clientDirectory = new URL("../dist/client/", import.meta.url);
+  const paths = await readdir(clientDirectory, { recursive: true });
+  const scripts = paths.filter((path) => path.endsWith(".js"));
+  const bundle = (
+    await Promise.all(
+      scripts.map((path) => readFile(new URL(path, clientDirectory), "utf8")),
+    )
+  ).join("\n");
+
+  assert.doesNotMatch(
+    bundle,
+    /GEMINI_API_KEY|generativelanguage\.googleapis\.com|AIza[0-9A-Za-z_-]{20,}/,
+  );
 });
 
 const groundedRequest = {
@@ -126,8 +149,71 @@ test("public AI endpoint accepts only a grounded provider response", async () =>
 
     assert.equal(response.status, 200);
     const payload = await response.json();
-    assert.equal(payload.explanation.model, "gemini-test");
+    assert.equal(payload.explanation.model, "gemini-3.1-flash-lite");
     assert.equal(payload.citation.documentId, "pg-indexes-01");
+  } finally {
+    globalThis.fetch = originalFetch;
+  }
+});
+
+test("public AI endpoint limits repeated provider calls per client", async () => {
+  const worker = await loadWorker();
+  const originalFetch = globalThis.fetch;
+  globalThis.fetch = async () =>
+    Response.json({
+      candidates: [
+        {
+          content: {
+            parts: [
+              {
+                text: JSON.stringify({
+                  summary:
+                    "Sıralı tarama, seçici filtre sırasında gereksiz satır taraması oluşturuyor.",
+                  recommendation:
+                    "Filtreyi destekleyen indeks adayını test ortamında ölçün ve yazma maliyetini yeni planla karşılaştırın.",
+                  evidence_ids: ["evidence-1", "evidence-2"],
+                  citation_ids: [
+                    "pg-indexes-01:selective-predicates:public",
+                  ],
+                }),
+              },
+            ],
+          },
+        },
+      ],
+    });
+
+  try {
+    const responses = [];
+    for (let index = 0; index < 6; index += 1) {
+      responses.push(
+        await worker.fetch(
+          new Request("http://localhost/api/ai-explain", {
+            method: "POST",
+            headers: {
+              "CF-Connecting-IP": "203.0.113.10",
+              "Content-Type": "application/json",
+              Origin: "http://localhost",
+            },
+            body: JSON.stringify(groundedRequest),
+          }),
+          {
+            GEMINI_API_KEY: "test-only-key",
+            GEMINI_MODEL: "gemini-test",
+          },
+          {
+            waitUntil() {},
+            passThroughOnException() {},
+          },
+        ),
+      );
+    }
+
+    assert.deepEqual(
+      responses.map((response) => response.status),
+      [200, 200, 200, 200, 200, 429],
+    );
+    assert.ok(Number(responses[5].headers.get("retry-after")) > 0);
   } finally {
     globalThis.fetch = originalFetch;
   }
