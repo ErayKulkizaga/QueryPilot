@@ -2,10 +2,10 @@
   "health": {
     "status": "ok",
     "service": "querypilot-local",
-    "version": "2.0.0-beta.2"
+    "version": "2.0.0-beta.3"
   },
   "analysis": {
-    "analysis_id": "20d0747e312240e98f25f7531d496e10",
+    "analysis_id": "d3bc39ac38db40638d9d92e0a31f45d4",
     "issue_category": "potential_missing_index",
     "severity": "high",
     "plan_evidence": [
@@ -15,7 +15,7 @@
     ],
     "recommendation_sql": "CREATE INDEX idx_customers_email ON customers (email);",
     "insufficient_context": false,
-    "latency_ms": 280,
+    "latency_ms": 225,
     "report_source": "deterministic",
     "enrichment_available": true
   },
@@ -28,8 +28,8 @@
       }
     ],
     "insufficient_context": false,
-    "latency_ms": 70572,
-    "generation_latency_ms": 58445,
+    "latency_ms": 73640,
+    "generation_latency_ms": 60413,
     "repair_attempted": false,
     "report_source": "foundry_local"
   }

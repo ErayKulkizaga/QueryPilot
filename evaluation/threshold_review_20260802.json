@@ -1,0 +1,28 @@
+{
+  "schema_version": 1,
+  "reviewed_at": "2026-08-02",
+  "target_label": "local-synthetic-fixture",
+  "measurement_group": "warm_cache",
+  "samples_per_query": 9,
+  "runs": [
+    {
+      "generated_at": "2026-08-02T23:59:19.842384+03:00",
+      "recommended_execution_ratio": 1.5,
+      "recommended_execution_delta_ms": 8.082
+    },
+    {
+      "generated_at": "2026-08-02T23:59:37.633906+03:00",
+      "recommended_execution_ratio": 1.5,
+      "recommended_execution_delta_ms": 15.405
+    }
+  ],
+  "accepted_local_default": {
+    "execution_ratio": 1.5,
+    "execution_delta_ms": 15.5,
+    "root_cost_ratio": 1.25
+  },
+  "scope": "local synthetic fixture and CI evidence only",
+  "production_dba_approval": false,
+  "credentials_recorded": false,
+  "recommendations_generated": false
+}

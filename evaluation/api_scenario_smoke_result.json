@@ -12,7 +12,7 @@
         "Rows Removed by Filter: 24,999",
         "Filter selectivity: 0.00%"
       ],
-      "latency_ms": 312,
+      "latency_ms": 642,
       "report_source": "deterministic"
     },
     {
@@ -21,10 +21,10 @@
       "issue_category": "no_clear_issue",
       "insufficient_context": true,
       "plan_evidence": [
-        "Execution Time: 0.25 ms",
+        "Execution Time: 0.14 ms",
         "Plan nodes inspected: 1"
       ],
-      "latency_ms": 66,
+      "latency_ms": 53,
       "report_source": "deterministic"
     }
   ]

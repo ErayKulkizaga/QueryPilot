@@ -26,7 +26,7 @@ class Settings(BaseSettings):
     baseline_database_path: Path = Path("data/querypilot_baselines.sqlite3")
     baseline_max_items: int = Field(default=100, ge=1, le=10_000)
     regression_execution_ratio: float = Field(default=1.5, ge=1.0, le=10.0)
-    regression_execution_delta_ms: float = Field(default=1.0, ge=0.0, le=60_000)
+    regression_execution_delta_ms: float = Field(default=15.5, ge=0.0, le=60_000)
     regression_cost_ratio: float = Field(default=1.25, ge=1.0, le=10.0)
 
 

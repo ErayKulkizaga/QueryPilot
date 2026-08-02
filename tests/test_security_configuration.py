@@ -1,5 +1,7 @@
 from pathlib import Path
 
+from app.config import Settings
+
 ROOT = Path(__file__).resolve().parents[1]
 
 
@@ -17,3 +19,11 @@ def test_database_role_bootstrap_does_not_embed_the_app_password() -> None:
     assert "QUERYPILOT_POSTGRES_APP_PASSWORD" in bootstrap
     assert "querypilot_app_dev" not in bootstrap
     assert "GRANT SELECT ON ALL TABLES" in bootstrap
+
+
+def test_local_regression_threshold_uses_reviewed_noise_floor() -> None:
+    settings = Settings(_env_file=None)
+
+    assert settings.regression_execution_ratio == 1.5
+    assert settings.regression_execution_delta_ms == 15.5
+    assert settings.regression_cost_ratio == 1.25

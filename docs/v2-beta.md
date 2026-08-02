@@ -31,14 +31,18 @@ optimization recommendation.
   `EXPLAIN ANALYZE` execution.
 - The committed synthetic pilot smoke measured two allowlisted queries without
   recording credentials, applying thresholds, or generating recommendations.
+- A fresh isolated PostgreSQL 17 fixture was re-verified on 2 August 2026 with
+  two independent nine-sample warm-cache runs. The reviewed local defaults are
+  a `1.5` execution ratio and `15.5 ms` absolute delta; the review explicitly
+  does not claim production DBA approval.
 - The public V2 showcase is synthetic and database-free; plan analysis remains
   browser-only, while an optional evidence-only request can produce a grounded
   cloud-AI explanation.
 - The public AI path cannot run for no-answer results, never receives the full
   plan, selects its own category source, and falls back to the deterministic
   report when the model output is invalid or unavailable.
-- The release gate passes 97 Python tests at 88.66% coverage, one real-browser
-  Streamlit workflow, and 18 public behavior, integration, and rendered-shell
+- The release gate passes 103 Python tests at 88.68% coverage, one real-browser
+  Streamlit workflow, and 19 public behavior, integration, and rendered-shell
   tests.
 - Python and public dependency audits report zero known vulnerabilities.
 
@@ -48,9 +52,9 @@ optimization recommendation.
   production database service.
 - Authentication, encrypted connection management, multi-user ownership, and
   production workload authorization are not implemented.
-- Query plan threshold calibration can now produce a sanitized review report,
-  but a separately authorized non-production run and DBA approval remain
-  required before promotion.
+- Query plan threshold calibration now has a sanitized local review report.
+  A target owner or DBA must still approve separately calibrated values before
+  any non-local database treats them as operational policy.
 - Cold-cache labels record operator-controlled conditions; QueryPilot does not
   clear PostgreSQL or operating-system caches.
 - Evidence-grounded Foundry Local generation remains outside the deterministic
@@ -61,7 +65,8 @@ optimization recommendation.
 
 ## Promotion rule
 
-Promote the beta to `v2.0.0` only after the complete workflow is exercised
-against a separately authorized non-production PostgreSQL database and its
-thresholds are reviewed. No production credential or database belongs in the
-public demo.
+Promote the beta to `v2.0.0` only after a target owner or DBA reviews the
+calibration for the intended non-local environment. The isolated local
+PostgreSQL workflow and engineering threshold review are complete, but they do
+not grant production authorization. No production credential or database
+belongs in the public demo.

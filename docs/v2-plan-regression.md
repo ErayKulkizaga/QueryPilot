@@ -65,13 +65,16 @@ The response contains:
 
 The default thresholds are:
 
-- execution time at least 1.5 times the baseline and at least 1.0 ms slower;
+- execution time at least 1.5 times the baseline and at least 15.5 ms slower;
 - root cost at least 1.25 times the baseline; or
 - an index-backed relation access path changing to a sequential scan.
 
 Execution-time thresholds are deliberately conjunctive. A large percentage on
-a sub-millisecond query is not enough without the absolute delta. Thresholds
-can be changed through `QUERYPILOT_REGRESSION_*` environment settings.
+a sub-millisecond query is not enough without the absolute delta. The 15.5 ms
+default is the conservative rounded maximum from two authorized nine-sample
+warm-cache runs on the local synthetic fixture. It is not a production DBA
+approval. Thresholds can be changed through `QUERYPILOT_REGRESSION_*`
+environment settings after environment-specific review.
 
 ## Safety properties
 

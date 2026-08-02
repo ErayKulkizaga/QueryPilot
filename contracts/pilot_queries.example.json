@@ -2,7 +2,7 @@
   "schema_version": 1,
   "target_label": "local-synthetic-fixture",
   "measurement_group": "warm_cache",
-  "repetitions": 5,
+  "repetitions": 9,
   "queries": [
     {
       "name": "orders-total-threshold",

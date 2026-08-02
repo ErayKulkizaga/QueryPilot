@@ -57,6 +57,8 @@ afterward.
 - [x] V2 live workload ranking and direct-access denial smoke recorded
 - [x] Guarded non-production pilot and threshold-calibration runner prepared
 - [x] Sanitized synthetic pilot calibration artefact recorded
+- [x] Fresh isolated PostgreSQL 17 pilot repeated with nine samples per query
+- [x] Local regression noise floor reviewed and recorded as `1.5` plus `15.5 ms`
 - [x] Real-browser Streamlit workflow enforced in CI
 - [x] Recorded video explicitly removed from the final acceptance scope
 - [x] Public source repository confirmed:

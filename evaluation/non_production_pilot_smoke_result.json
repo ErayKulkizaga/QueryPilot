@@ -1,6 +1,6 @@
 {
   "schema_version": 1,
-  "generated_at_utc": "2026-07-29T16:26:25.537229+00:00",
+  "generated_at_utc": "2026-08-02T20:59:19.842384+00:00",
   "target": {
     "label": "local-synthetic-fixture",
     "database": "querypilot",
@@ -17,49 +17,85 @@
     {
       "name": "orders-total-threshold",
       "query_fingerprint": "ee10d34109fcd9ea5a6fa463d4bfd219dcfff95420c3003c469fcbcfe0252cc7",
-      "sample_count": 5,
+      "sample_count": 9,
       "plan_samples": [
         {
-          "planning_time_ms": 0.584,
-          "execution_time_ms": 22.145,
+          "planning_time_ms": 0.573,
+          "execution_time_ms": 24.378,
           "root_node_type": "Aggregate",
-          "root_total_cost": 2760.72,
+          "root_total_cost": 2760.56,
           "node_count": 2,
           "shared_read_blocks": 0.0,
           "temp_written_blocks": 0.0
         },
         {
-          "planning_time_ms": 0.085,
-          "execution_time_ms": 20.733,
+          "planning_time_ms": 0.084,
+          "execution_time_ms": 39.269,
           "root_node_type": "Aggregate",
-          "root_total_cost": 2760.72,
+          "root_total_cost": 2760.56,
           "node_count": 2,
           "shared_read_blocks": 0.0,
           "temp_written_blocks": 0.0
         },
         {
           "planning_time_ms": 0.08,
-          "execution_time_ms": 20.283,
+          "execution_time_ms": 47.173,
           "root_node_type": "Aggregate",
-          "root_total_cost": 2760.72,
+          "root_total_cost": 2760.56,
           "node_count": 2,
           "shared_read_blocks": 0.0,
           "temp_written_blocks": 0.0
         },
         {
-          "planning_time_ms": 0.131,
-          "execution_time_ms": 22.117,
+          "planning_time_ms": 0.247,
+          "execution_time_ms": 36.821,
           "root_node_type": "Aggregate",
-          "root_total_cost": 2760.72,
+          "root_total_cost": 2760.56,
           "node_count": 2,
           "shared_read_blocks": 0.0,
           "temp_written_blocks": 0.0
         },
         {
-          "planning_time_ms": 0.076,
-          "execution_time_ms": 21.904,
+          "planning_time_ms": 0.086,
+          "execution_time_ms": 55.466,
           "root_node_type": "Aggregate",
-          "root_total_cost": 2760.72,
+          "root_total_cost": 2760.56,
+          "node_count": 2,
+          "shared_read_blocks": 0.0,
+          "temp_written_blocks": 0.0
+        },
+        {
+          "planning_time_ms": 0.061,
+          "execution_time_ms": 38.263,
+          "root_node_type": "Aggregate",
+          "root_total_cost": 2760.56,
+          "node_count": 2,
+          "shared_read_blocks": 0.0,
+          "temp_written_blocks": 0.0
+        },
+        {
+          "planning_time_ms": 0.062,
+          "execution_time_ms": 39.83,
+          "root_node_type": "Aggregate",
+          "root_total_cost": 2760.56,
+          "node_count": 2,
+          "shared_read_blocks": 0.0,
+          "temp_written_blocks": 0.0
+        },
+        {
+          "planning_time_ms": 0.059,
+          "execution_time_ms": 39.515,
+          "root_node_type": "Aggregate",
+          "root_total_cost": 2760.56,
+          "node_count": 2,
+          "shared_read_blocks": 0.0,
+          "temp_written_blocks": 0.0
+        },
+        {
+          "planning_time_ms": 0.062,
+          "execution_time_ms": 47.704,
+          "root_node_type": "Aggregate",
+          "root_total_cost": 2760.56,
           "node_count": 2,
           "shared_read_blocks": 0.0,
           "temp_written_blocks": 0.0
@@ -67,24 +103,24 @@
       ],
       "recommendations_generated": false,
       "threshold_calibration": {
-        "sample_count": 5,
-        "median_execution_time_ms": 21.904,
-        "min_execution_time_ms": 20.283,
-        "max_execution_time_ms": 22.145,
-        "median_absolute_deviation_ms": 0.241,
+        "sample_count": 9,
+        "median_execution_time_ms": 39.515,
+        "min_execution_time_ms": 24.378,
+        "max_execution_time_ms": 55.466,
+        "median_absolute_deviation_ms": 2.694,
         "recommended_execution_ratio": 1.5,
-        "recommended_execution_delta_ms": 1.0,
+        "recommended_execution_delta_ms": 8.082,
         "ratio_capped_at_product_limit": false
       }
     },
     {
       "name": "customer-primary-key-lookup",
       "query_fingerprint": "9671bfe21c4737e1f272d77112944800a1fc2028126fb50052155c4d43c685f0",
-      "sample_count": 5,
+      "sample_count": 9,
       "plan_samples": [
         {
-          "planning_time_ms": 0.735,
-          "execution_time_ms": 0.102,
+          "planning_time_ms": 0.823,
+          "execution_time_ms": 0.09,
           "root_node_type": "Index Scan",
           "root_total_cost": 8.3,
           "node_count": 1,
@@ -92,8 +128,8 @@
           "temp_written_blocks": 0.0
         },
         {
-          "planning_time_ms": 0.191,
-          "execution_time_ms": 0.065,
+          "planning_time_ms": 0.089,
+          "execution_time_ms": 0.071,
           "root_node_type": "Index Scan",
           "root_total_cost": 8.3,
           "node_count": 1,
@@ -101,8 +137,8 @@
           "temp_written_blocks": 0.0
         },
         {
-          "planning_time_ms": 0.072,
-          "execution_time_ms": 0.072,
+          "planning_time_ms": 0.084,
+          "execution_time_ms": 0.163,
           "root_node_type": "Index Scan",
           "root_total_cost": 8.3,
           "node_count": 1,
@@ -110,8 +146,8 @@
           "temp_written_blocks": 0.0
         },
         {
-          "planning_time_ms": 0.066,
-          "execution_time_ms": 0.06,
+          "planning_time_ms": 0.087,
+          "execution_time_ms": 0.066,
           "root_node_type": "Index Scan",
           "root_total_cost": 8.3,
           "node_count": 1,
@@ -119,8 +155,44 @@
           "temp_written_blocks": 0.0
         },
         {
-          "planning_time_ms": 0.07,
-          "execution_time_ms": 0.074,
+          "planning_time_ms": 0.078,
+          "execution_time_ms": 0.077,
+          "root_node_type": "Index Scan",
+          "root_total_cost": 8.3,
+          "node_count": 1,
+          "shared_read_blocks": 0.0,
+          "temp_written_blocks": 0.0
+        },
+        {
+          "planning_time_ms": 0.049,
+          "execution_time_ms": 0.063,
+          "root_node_type": "Index Scan",
+          "root_total_cost": 8.3,
+          "node_count": 1,
+          "shared_read_blocks": 0.0,
+          "temp_written_blocks": 0.0
+        },
+        {
+          "planning_time_ms": 0.053,
+          "execution_time_ms": 0.064,
+          "root_node_type": "Index Scan",
+          "root_total_cost": 8.3,
+          "node_count": 1,
+          "shared_read_blocks": 0.0,
+          "temp_written_blocks": 0.0
+        },
+        {
+          "planning_time_ms": 0.068,
+          "execution_time_ms": 0.098,
+          "root_node_type": "Index Scan",
+          "root_total_cost": 8.3,
+          "node_count": 1,
+          "shared_read_blocks": 0.0,
+          "temp_written_blocks": 0.0
+        },
+        {
+          "planning_time_ms": 0.075,
+          "execution_time_ms": 0.059,
           "root_node_type": "Index Scan",
           "root_total_cost": 8.3,
           "node_count": 1,
@@ -130,11 +202,11 @@
       ],
       "recommendations_generated": false,
       "threshold_calibration": {
-        "sample_count": 5,
-        "median_execution_time_ms": 0.072,
-        "min_execution_time_ms": 0.06,
-        "max_execution_time_ms": 0.102,
-        "median_absolute_deviation_ms": 0.007,
+        "sample_count": 9,
+        "median_execution_time_ms": 0.071,
+        "min_execution_time_ms": 0.059,
+        "max_execution_time_ms": 0.163,
+        "median_absolute_deviation_ms": 0.008,
         "recommended_execution_ratio": 1.5,
         "recommended_execution_delta_ms": 1.0,
         "ratio_capped_at_product_limit": false
@@ -143,7 +215,7 @@
   ],
   "threshold_calibration": {
     "recommended_global_execution_ratio": 1.5,
-    "recommended_global_execution_delta_ms": 1.0,
+    "recommended_global_execution_delta_ms": 8.082,
     "automatically_applied": false,
     "requires_human_review": true
   },

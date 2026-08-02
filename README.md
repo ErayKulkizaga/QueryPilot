@@ -323,6 +323,8 @@ Project delivery references:
   boundaries
 - [`docs/non-production-pilot.md`](docs/non-production-pilot.md) — guarded,
   allowlisted non-production measurement and threshold calibration
+- [`docs/threshold-review.md`](docs/threshold-review.md) — reviewed local
+  regression defaults and the explicit production-approval boundary
 
 Run the default release gate without starting Docker or Foundry Local:
 
