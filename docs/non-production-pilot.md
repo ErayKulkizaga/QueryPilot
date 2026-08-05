@@ -1,8 +1,9 @@
 # Authorized non-production pilot
 
 The pilot runner measures an explicit allowlist of representative `SELECT`
-queries against a separately authorized PostgreSQL target. It is preparation
-for V2 promotion, not permission to connect QueryPilot to production.
+queries against a separately authorized PostgreSQL target. It is portfolio
+evidence for the V2 workflow, not permission to connect QueryPilot to
+production.
 
 ## Safety gates
 

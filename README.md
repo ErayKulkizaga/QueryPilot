@@ -11,18 +11,18 @@ This repository is the implementation of the seven-day MVP plan in
 [Live demo](https://querypilot.eraykulkizaga.com/) ·
 [Architecture](docs/architecture.md) ·
 [Technical presentation](artifacts/QueryPilot_Local_Teknik_Sunum.pdf) ·
+[V2 release notes](docs/release-notes-v2.0.0.md) ·
 [Release checklist](docs/release-checklist.md) ·
 [Security review](docs/security-review.md) ·
 [MVP closeout](docs/mvp-closeout.md)
 
-**Release candidate:** `v2.0.0-beta.3`, built on the frozen `v1.0.0`
-technical MVP and the tagged `v2.0.0-beta.2` grounded-AI release. V2 adds
-workload prioritization, reviewed
-representative-SQL handoff, measurement-grouped plan baselines, checked-in plan
-contracts, portable evidence reports, a synthetic public regression showcase,
-and optional evidence-grounded AI + RAG explanation in the public demo. A
-recorded demo video remains outside the release scope;
-`docs/demo-script.md` is the reproducible walkthrough.
+**Portfolio release:** `v2.0.0` — complete and frozen for CV, interview, and
+technical-portfolio use. The release demonstrates deterministic PostgreSQL
+plan analysis, workload prioritization, measurement-grouped baselines, plan
+regression evidence, and optional evidence-grounded AI + RAG explanation.
+
+**Core stack:** Python · FastAPI · PostgreSQL · pg_stat_statements · Streamlit ·
+SQLGlot · RAG · Foundry Local · Gemini · Docker · GitHub Actions
 
 ![QueryPilot public demo showing a deterministic PostgreSQL plan diagnosis](artifacts/screenshots/querypilot-live-desktop.png)
 
@@ -41,9 +41,9 @@ Version 2 now demonstrates automated query triage and plan-regression detection
 using `pg_stat_statements` while keeping every recommendation behind plan
 evidence.
 
-## Current milestone
+## Completed portfolio scope
 
-The current beta includes:
+The completed release includes:
 
 - AST-based single-statement and read-only SQL validation
 - read-only PostgreSQL execution with a three-second statement timeout
@@ -319,8 +319,10 @@ Project delivery references:
   manual release gates
 - [`docs/v2-plan-regression.md`](docs/v2-plan-regression.md) — baseline,
   comparison, and regression evidence contract
-- [`docs/v2-beta.md`](docs/v2-beta.md) — V2 beta acceptance and remaining
-  boundaries
+- [`docs/v2-closeout.md`](docs/v2-closeout.md) — final V2 portfolio acceptance
+  and deliberate scope boundaries
+- [`docs/release-notes-v2.0.0.md`](docs/release-notes-v2.0.0.md) — concise
+  final-release highlights for portfolio reviewers
 - [`docs/non-production-pilot.md`](docs/non-production-pilot.md) — guarded,
   allowlisted non-production measurement and threshold calibration
 - [`docs/threshold-review.md`](docs/threshold-review.md) — reviewed local

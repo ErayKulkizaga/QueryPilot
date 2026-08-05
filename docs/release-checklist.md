@@ -72,6 +72,11 @@ afterward.
 - [x] `v2.0.0-beta.2` release tag created from the final verified commit
 - [x] Public-AI source and documentation prepared for `v2.0.0-beta.3`
 - [x] `v2.0.0-beta.3` live deployment and release tag created
+- [x] Commercial SaaS capabilities explicitly excluded from the CV-project scope
+- [x] MIT license added
+- [x] Version metadata finalized as `2.0.0`
+- [x] V2 portfolio closeout and final release notes completed
+- [x] `v2.0.0` public demo, tag, and GitHub Release published
 
 The version tag represents the exact commit containing the reviewed
 presentation, screenshots, evaluation, smoke artefacts, and reproducible live

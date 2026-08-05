@@ -1,6 +1,6 @@
 # QueryPilot V2 plan baseline and regression contract
 
-Status: implemented in the `v2.0.0-beta.1` evidence workflow beta.
+Status: completed in the final `v2.0.0` portfolio release.
 
 ## Goal
 
@@ -88,7 +88,7 @@ environment settings after environment-specific review.
 - No LLM is involved.
 - No recommendation or SQL change is produced.
 
-## Completed V2 beta increment
+## Completed V2 portfolio increment
 
 The repository CI runs the complete release gate, including median aggregation,
 retention, deletion, comparator, API, UI, and checked-in live plan-contract

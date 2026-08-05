@@ -1,6 +1,6 @@
 # QueryPilot security review
 
-Reviewed for the `v2.0.0-beta.3` public-AI release candidate.
+Reviewed for the final `v2.0.0` portfolio release.
 
 ## Hosting boundary
 

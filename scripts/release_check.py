@@ -13,15 +13,16 @@ from app import __version__
 
 ROOT = Path(__file__).resolve().parents[1]
 PUBLIC_DEMO = ROOT / "public-demo"
-RELEASE_VERSION = "2.0.0-beta.3"
+RELEASE_VERSION = "2.0.0"
 
 REQUIRED_FILES = (
+    ROOT / "LICENSE",
     ROOT / "README.md",
     ROOT / "docs" / "architecture.md",
     ROOT / "docs" / "demo-script.md",
     ROOT / "docs" / "release-checklist.md",
     ROOT / "docs" / "technical-spike.md",
-    ROOT / "docs" / "v2-beta.md",
+    ROOT / "docs" / "v2-closeout.md",
     ROOT / "evaluation" / "results.json",
     ROOT / "evaluation" / "api_smoke_result.json",
     ROOT / "evaluation" / "api_scenario_smoke_result.json",

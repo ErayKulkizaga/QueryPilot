@@ -2,7 +2,7 @@
   "health": {
     "status": "ok",
     "service": "querypilot-local",
-    "version": "2.0.0-beta.3"
+    "version": "2.0.0"
   },
   "analysis": {
     "analysis_id": "d3bc39ac38db40638d9d92e0a31f45d4",
