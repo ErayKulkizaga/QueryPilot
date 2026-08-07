@@ -4,10 +4,28 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "querypilot-local"
-version = "2.0.0"
-description = "Offline PostgreSQL query-plan assistant with a deterministic analysis core"
+version = "2.0.1"
+description = "Evidence-first PostgreSQL plan analysis with grounded AI and RAG"
 readme = "README.md"
 requires-python = ">=3.11"
+license = "MIT"
+authors = [{ name = "Eray Kulkızaga" }]
+keywords = [
+  "postgresql",
+  "query-optimization",
+  "explain-analyze",
+  "rag",
+  "foundry-local",
+]
+classifiers = [
+  "Intended Audience :: Developers",
+  "License :: OSI Approved :: MIT License",
+  "Programming Language :: Python :: 3",
+  "Programming Language :: Python :: 3.11",
+  "Programming Language :: Python :: 3.12",
+  "Programming Language :: Python :: 3.13",
+  "Topic :: Database",
+]
 dependencies = [
   "fastapi>=0.115,<1",
   "uvicorn[standard]>=0.34,<1",
@@ -18,6 +36,12 @@ dependencies = [
   "httpx>=0.28,<1",
   "numpy>=2,<3",
 ]
+
+[project.urls]
+Homepage = "https://querypilot.eraykulkizaga.com/"
+Repository = "https://github.com/ErayKulkizaga/QueryPilot"
+Documentation = "https://github.com/ErayKulkizaga/QueryPilot#readme"
+Issues = "https://github.com/ErayKulkizaga/QueryPilot/issues"
 
 [tool.pytest.ini_options]
 addopts = "-q"

@@ -1,6 +1,7 @@
 # QueryPilot V2 portfolio closeout
 
-Status: released as `v2.0.0` on 5 August 2026.
+Status: feature-complete in `v2.0.0` and finalized for portfolio presentation
+in `v2.0.1` on 7 August 2026.
 
 ## What the release proves
 
@@ -62,6 +63,6 @@ approve the queries and environment-specific thresholds.
 
 ## Completion decision
 
-`v2.0.0` is complete and frozen for portfolio use. New product capabilities
+`v2.0.1` is complete and frozen for portfolio use. New product capabilities
 would belong to a separately scoped future project or version; they are not
 required to present, evaluate, or reproduce this release.

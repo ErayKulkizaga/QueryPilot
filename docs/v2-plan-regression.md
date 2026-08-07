@@ -1,6 +1,6 @@
 # QueryPilot V2 plan baseline and regression contract
 
-Status: completed in the final `v2.0.0` portfolio release.
+Status: completed in the final `v2.0.1` portfolio release.
 
 ## Goal
 

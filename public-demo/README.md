@@ -72,7 +72,7 @@ are not made during the default test suite.
 - `lib/fixtures.ts` - synthetic demonstration plans
 - `tests/analyzer.test.ts` - public analysis and trust-boundary tests
 - `tests/public-ai.test.ts` - public AI evidence and citation contract tests
-- `public/og.png` - QueryPilot social preview
+- `public/og-v2.png` - QueryPilot social preview
 
 The full local engineering runtime lives at the repository root. See the
 [architecture document](../docs/architecture.md) for the boundary between the

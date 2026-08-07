@@ -2,26 +2,32 @@ from __future__ import annotations
 
 import argparse
 import json
+import re
 import shutil
 import subprocess
 import sys
 import tempfile
 import tomllib
 from pathlib import Path
+from urllib.parse import unquote
 
 from app import __version__
 
 ROOT = Path(__file__).resolve().parents[1]
 PUBLIC_DEMO = ROOT / "public-demo"
-RELEASE_VERSION = "2.0.0"
+RELEASE_VERSION = "2.0.1"
 
 REQUIRED_FILES = (
     ROOT / "LICENSE",
+    ROOT / "SECURITY.md",
     ROOT / "README.md",
+    ROOT / ".github" / "workflows" / "codeql.yml",
+    ROOT / ".github" / "workflows" / "ci.yml",
     ROOT / "docs" / "architecture.md",
     ROOT / "docs" / "demo-script.md",
     ROOT / "docs" / "release-checklist.md",
     ROOT / "docs" / "technical-spike.md",
+    ROOT / "docs" / "release-notes-v2.0.1.md",
     ROOT / "docs" / "v2-closeout.md",
     ROOT / "evaluation" / "results.json",
     ROOT / "evaluation" / "api_smoke_result.json",
@@ -39,6 +45,8 @@ REQUIRED_FILES = (
     ROOT / "artifacts" / "screenshots" / "querypilot-live-mobile.png",
     PUBLIC_DEMO / ".openai" / "hosting.json",
 )
+
+MARKDOWN_LINK_PATTERN = re.compile(r"\[[^\]]+\]\(([^)]+)\)")
 
 
 def run(label: str, command: list[str], *, cwd: Path = ROOT) -> None:
@@ -75,6 +83,35 @@ def verify_release_versions() -> None:
     print(f"[version] all release surfaces report {RELEASE_VERSION}")
 
 
+def verify_relative_markdown_links() -> None:
+    markdown_files = [
+        ROOT / "README.md",
+        ROOT / "SECURITY.md",
+        PUBLIC_DEMO / "README.md",
+        *sorted((ROOT / "docs").glob("*.md")),
+    ]
+    missing: list[str] = []
+    checked = 0
+    for markdown_file in markdown_files:
+        content = markdown_file.read_text(encoding="utf-8")
+        for match in MARKDOWN_LINK_PATTERN.finditer(content):
+            target = match.group(1).split(maxsplit=1)[0]
+            if target.startswith(("http://", "https://", "mailto:", "#")):
+                continue
+            relative_target = unquote(target.split("#", maxsplit=1)[0])
+            if not relative_target:
+                continue
+            checked += 1
+            resolved = (markdown_file.parent / relative_target).resolve()
+            if not resolved.exists():
+                missing.append(
+                    f"{markdown_file.relative_to(ROOT)} -> {relative_target}"
+                )
+    if missing:
+        raise SystemExit("Broken relative Markdown links: " + ", ".join(missing))
+    print(f"[docs] {checked} relative Markdown links resolve")
+
+
 def parse_args() -> argparse.Namespace:
     parser = argparse.ArgumentParser(
         description="Run QueryPilot's release gate without starting Docker."
@@ -103,6 +140,7 @@ def main() -> None:
     args = parse_args()
     verify_required_files()
     verify_release_versions()
+    verify_relative_markdown_links()
     run("tracked secret scan", [sys.executable, "-m", "scripts.secret_scan"])
     run(
         "Python dependency audit",

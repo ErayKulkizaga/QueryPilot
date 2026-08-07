@@ -1,6 +1,6 @@
 # QueryPilot security review
 
-Reviewed for the final `v2.0.0` portfolio release.
+Reviewed for the final `v2.0.1` portfolio release.
 
 ## Hosting boundary
 
@@ -65,6 +65,11 @@ credentials or run unreviewed queries against a production database.
 - The browser bundle test rejects the Gemini endpoint, runtime variable name,
   or Google API-key-shaped values in client JavaScript.
 - The release gate scans tracked files for secret patterns before deployment.
+- GitHub secret scanning and push protection are enabled for the repository.
+- CodeQL analyzes the Python and JavaScript/TypeScript source on every push and
+  pull request.
+- Private vulnerability reporting is enabled; disclosure instructions live in
+  the root `SECURITY.md` file.
 
 ## Browser response hardening
 

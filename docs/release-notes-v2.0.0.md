@@ -1,6 +1,6 @@
 # QueryPilot v2.0.0
 
-QueryPilot `v2.0.0` is the final portfolio release of an evidence-first
+QueryPilot `v2.0.0` is the feature-complete release of an evidence-first
 PostgreSQL execution-plan assistant. It combines deterministic plan analysis,
 workload prioritization, baseline comparison, and tightly constrained AI + RAG
 explanation without allowing the model to own correctness.
